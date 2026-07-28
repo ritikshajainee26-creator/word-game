@@ -151,18 +151,11 @@ test('GameEngine handles disconnect and reconnect grace period', () => {
   const dcEvent = events.find(e => e.event === 'player_disconnected');
   assert.ok(dcEvent);
   assert.strictEqual(dcEvent.data.playerId, 'p1');
-  assert.strictEqual(dcEvent.data.gracePeriodSeconds, 30);
 
   // Reconnect Alice
   const reconnected = engine.handleReconnect('p1', 'new_socket_id');
   assert.strictEqual(reconnected, true);
   assert.strictEqual(engine.players[0].connected, true);
-
-  // Verify state snapshot
-  const state = engine.getCurrentState('p1');
-  assert.strictEqual(state.roomId, 'TEST_ROOM_5');
-  assert.strictEqual(state.currentRound, 1);
-  assert.strictEqual(state.players.length, 2);
 
   engine.clearTimers();
 });

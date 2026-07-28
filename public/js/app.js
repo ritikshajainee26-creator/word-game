@@ -96,16 +96,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function getPlayerName() {
+  function validateAndGetPlayerName() {
     const val = (elements.playerNameInput.value || '').trim();
     if (!val) {
-      elements.playerNameInput.classList.add('error');
+      elements.playerNameInput.classList.add('input-error');
       elements.nameErrorMsg.classList.remove('hidden');
       elements.playerNameInput.focus();
-      if (window.soundFx) window.soundFx.playWrongGuess();
       return null;
     }
-    elements.playerNameInput.classList.remove('error');
+    elements.playerNameInput.classList.remove('input-error');
     elements.nameErrorMsg.classList.add('hidden');
     myPlayerName = val;
     return myPlayerName;
@@ -115,20 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('connect', () => {
     elements.networkStatus.querySelector('.status-dot').className = 'status-dot online';
     elements.networkStatus.querySelector('.status-text').innerText = 'Connected';
-
-    // Attempt automatic reconnection if session exists
-    const savedSession = sessionStorage.getItem('active_match_session');
-    if (savedSession) {
-      try {
-        const parsed = JSON.parse(savedSession);
-        if (parsed.roomId && parsed.playerId) {
-          myPlayerId = parsed.playerId;
-          myPlayerName = parsed.playerName || myPlayerName;
-          if (elements.playerNameInput) elements.playerNameInput.value = myPlayerName;
-          socket.emit('request_reconnect', { roomId: parsed.roomId, playerId: myPlayerId });
-        }
-      } catch (e) {}
-    }
   });
 
   socket.on('disconnect', () => {
@@ -152,13 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
     stopMatchmakingTimer();
     currentRoomId = data.roomId;
     
-    // Save match session for reconnect recovery
-    sessionStorage.setItem('active_match_session', JSON.stringify({
-      roomId: currentRoomId,
-      playerId: myPlayerId,
-      playerName: myPlayerName
-    }));
-
     // Determine player names
     const me = data.players.find(p => p.id === myPlayerId);
     const opponent = data.players.find(p => p.id !== myPlayerId);
@@ -276,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   socket.on('match_end', (data) => {
     stopIntervalCountdown();
-    sessionStorage.removeItem('active_match_session');
     const isWinner = data.winnerId === myPlayerId;
 
     elements.resultTitle.innerText = isWinner ? '🎉 MATCH VICTORY!' : 'GAME OVER';
@@ -286,58 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnNextRound.classList.add('hidden');
     elements.btnReturnLobby.classList.remove('hidden');
     elements.resultModal.classList.remove('hidden');
-  });
-
-  socket.on('reconnect_success', (data) => {
-    const state = data.gameState;
-    currentRoomId = state.roomId;
-
-    sessionStorage.setItem('active_match_session', JSON.stringify({
-      roomId: currentRoomId,
-      playerId: myPlayerId,
-      playerName: myPlayerName
-    }));
-
-    const me = state.players.find(p => p.id === myPlayerId);
-    const opponent = state.players.find(p => p.id !== myPlayerId);
-
-    elements.p1Name.innerText = me ? me.name : (myPlayerName || 'Player 1');
-    elements.p2Name.innerText = opponent ? opponent.name : 'Opponent';
-    opponentName = opponent ? opponent.name : 'Opponent';
-
-    elements.p1Score.innerText = me ? me.score : '0';
-    elements.p2Score.innerText = opponent ? opponent.score : '0';
-
-    elements.roundIndicator.innerText = `ROUND ${state.currentRound}`;
-    wordLength = state.wordLength;
-    currentMaskedWord = [...state.maskedWord];
-    revealIntervalMs = state.revealIntervalMs || 15000;
-    intervalIndex = state.intervalIndex;
-
-    renderTiles(currentMaskedWord);
-
-    if (state.hasGuessedInInterval) {
-      isGuessSubmittedThisInterval = true;
-      elements.guessInput.disabled = true;
-      elements.btnSubmitGuess.disabled = true;
-      elements.intervalStatus.classList.add('spent');
-      elements.intervalStatusText.innerText = '🔒 Guess submitted for this letter tick. Waiting for next tick...';
-    } else {
-      resetIntervalGuessStatus();
-    }
-
-    elements.disconnectBanner.classList.add('hidden');
-    elements.privateRoomModal.classList.add('hidden');
-    elements.resultModal.classList.add('hidden');
-    showScreen('arenaScreen');
-
-    startIntervalCountdown(revealIntervalMs);
-    addLog(`⚡ Reconnected to match! Game resumed from Round ${state.currentRound}.`, 'system');
-  });
-
-  socket.on('reconnect_failed', () => {
-    sessionStorage.removeItem('active_match_session');
-    showScreen('lobbyScreen');
   });
 
   socket.on('player_disconnected', (data) => {
@@ -472,30 +397,29 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.matchLog.scrollTop = elements.matchLog.scrollHeight;
   }
 
-  // Clear name error on typing
+  // --- 8. DOM EVENT BINDINGS ---
   elements.playerNameInput.addEventListener('input', () => {
-    if (elements.playerNameInput.value.trim()) {
-      elements.playerNameInput.classList.remove('error');
+    if (elements.playerNameInput.value.trim().length > 0) {
+      elements.playerNameInput.classList.remove('input-error');
       elements.nameErrorMsg.classList.add('hidden');
     }
   });
 
-  // --- 8. DOM EVENT BINDINGS ---
   elements.btnQuickMatch.addEventListener('click', () => {
-    const name = getPlayerName();
+    const name = validateAndGetPlayerName();
     if (!name) return;
     socket.emit('join_queue', { name, playerId: myPlayerId });
   });
 
   elements.btnPracticeBot.addEventListener('click', () => {
-    const name = getPlayerName();
+    const name = validateAndGetPlayerName();
     if (!name) return;
     socket.emit('start_bot_match', { name, playerId: myPlayerId });
   });
 
   elements.btnSwitchToBot.addEventListener('click', () => {
-    const name = getPlayerName() || 'Player';
     stopMatchmakingTimer();
+    const name = validateAndGetPlayerName() || 'Player';
     socket.emit('start_bot_match', { name, playerId: myPlayerId });
   });
 
@@ -520,11 +444,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Private Room Setup Modal
   elements.btnPrivateRoom.addEventListener('click', () => {
-    const name = getPlayerName();
+    const name = validateAndGetPlayerName();
     if (!name) return;
     elements.privateRoomModal.classList.remove('hidden');
   });
-
   elements.btnClosePrivateModal.addEventListener('click', () => {
     elements.privateRoomModal.classList.add('hidden');
   });
@@ -544,13 +467,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   elements.btnConfirmCreateRoom.addEventListener('click', () => {
-    const name = getPlayerName();
+    const name = validateAndGetPlayerName();
     if (!name) return;
     socket.emit('create_private_room', { name, playerId: myPlayerId });
   });
 
   elements.btnConfirmJoinRoom.addEventListener('click', () => {
-    const name = getPlayerName();
+    const name = validateAndGetPlayerName();
     if (!name) return;
     const code = (elements.joinRoomCodeInput.value || '').trim();
     if (code) {

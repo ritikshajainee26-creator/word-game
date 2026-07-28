@@ -387,7 +387,7 @@ class GameEngine {
   }
 
   /**
-   * Handles player disconnection with a 30s grace window.
+   * Handles player disconnection with a 15s grace window.
    */
   handleDisconnect(playerId) {
     const player = this.players.find(p => p.id === playerId);
@@ -399,16 +399,16 @@ class GameEngine {
     this.emit('player_disconnected', {
       playerId,
       playerName: player.name,
-      gracePeriodSeconds: 30
+      gracePeriodSeconds: 15
     });
 
-    // 30-second forfeit timer
+    // 15-second forfeit timer
     const forfeitTimer = setTimeout(() => {
       if (!player.connected && this.status !== 'match_ended') {
         const remainingPlayer = this.players.find(p => p.id !== playerId);
         this.endMatch(remainingPlayer ? remainingPlayer.id : null, 'WIN_BY_FORFEIT');
       }
-    }, 30000);
+    }, 15000);
 
     this.disconnectTimers.set(playerId, forfeitTimer);
   }
@@ -450,29 +450,6 @@ class GameEngine {
       scores[p.id] = p.score;
     });
     return scores;
-  }
-
-  /**
-   * Returns current snapshot of match state for reconnected clients.
-   */
-  getCurrentState(playerId) {
-    return {
-      roomId: this.roomId,
-      status: this.status,
-      currentRound: this.currentRound,
-      targetScore: this.targetScore,
-      players: this.players.map(p => ({
-        id: p.id,
-        name: p.name,
-        score: p.score,
-        connected: p.connected
-      })),
-      wordLength: this.targetWord ? this.targetWord.length : 0,
-      maskedWord: [...this.maskedWord],
-      revealIntervalMs: this.revealIntervalMs,
-      intervalIndex: this.intervalIndex,
-      hasGuessedInInterval: this.intervalGuesses.has(playerId)
-    };
   }
 
   /**

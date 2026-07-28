@@ -51,12 +51,12 @@ This document captures the business requirements, domain rules, edge-case polici
 - **Rule**: Guesses are tagged with the current server `intervalIndex`.
 - **Policy**: When a correct guess is received in interval `i`, the server delays round finalization by a grace window (up to 300ms or remaining interval time) to receive any concurrent packet sent by the opponent in the same interval window `i`.
 
-### Edge Case 2: Player Disconnects & Seamless Reconnection
+### Edge Case 2: Player Disconnects
 - **Rule**: If a player's WebSocket connection drops during an active match:
   - Game timer enters a **Paused State**.
-  - Opponent is notified: `"Player disconnected. Reconnect grace window: 30s"`.
-  - If player reconnects within **30 seconds** (e.g. page refresh or network recovery using session token `matchId` + `playerId`), match state is re-synchronized (`reconnect_success`) and gameplay continues seamlessly right from where they disconnected.
-  - If 30 seconds elapse without reconnect, disconnected player forfeits, and connected player is awarded victory by forfeit (`WIN_BY_FORFEIT`).
+  - Opponent is notified: `"Player disconnected. Reconnect grace window: 15s"`.
+  - If player reconnects within 15 seconds using their session `matchId` + `playerId`, match resumes seamlessly.
+  - If 15 seconds elapse without reconnect, disconnected player forfeits, and connected player is awarded victory by forfeit (`WIN_BY_FORFEIT`).
 
 ### Edge Case 3: Late Submissions
 - **Rule**: Submissions received after a round has already ended, or after interval `i` has completed, are rejected with `LATE_SUBMISSION` status code.

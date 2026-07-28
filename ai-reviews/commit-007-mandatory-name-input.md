@@ -1,35 +1,35 @@
 # 🤖 AI Review & Reflection — Commit #007
 
-**Commit Title**: `feat(ui): remove default name fallback and enforce mandatory name input`  
+**Commit Title**: `feat(ui): remove default WordMaster name and enforce mandatory display name validation`  
 **Date**: 2026-07-28  
 **Author/AI Pair**: Antigravity AI Assistant & Developer
 
 ---
 
 ## 📌 Scope of Changes
-- Updated `public/index.html`: Removed `value="WordMaster"` default input value, added `autofocus`, required indicator (`*`), and a dedicated validation error message span (`#nameErrorMsg`).
-- Updated `public/css/style.css`: Added input shake animation (`@keyframes shakeInput`), rose highlight border, and error text styling for empty name submission attempts.
+- Updated `public/index.html`: Removed `value="WordMaster"` default string from `#playerNameInput`, updated placeholder, marked field as required (`*`), and added warning element `#nameErrorMsg`.
+- Updated `public/css/style.css`: Added styles for required indicators (`.required-star`), input error highlight (`.form-input.input-error`), warning text (`.name-error-msg`), and error shake animation (`@keyframes inputShake`).
 - Updated `public/js/app.js`:
-  - Removed `'WordMaster'` string default fallback.
-  - Implemented strict `getPlayerName()` validation requiring a non-whitespace display name.
-  - Added visual error trigger and audio error cue if a user clicks a game mode button without entering a name.
-  - Added `input` event listener to clear error highlights as soon as the user starts typing.
+  - Replaced default string assignment with `validateAndGetPlayerName()`.
+  - Implemented strict input checking: if user leaves display name blank and clicks any game mode button (Quick Match, Private Game, Practice vs AI), proceeding is blocked, an error message is displayed, input field shakes, and focus is shifted to input.
+  - Added input listener to auto-clear error status as soon as user starts typing.
 
 ---
 
 ## 🧠 AI Self-Review & Technical Decisions
 
-### 1. Mandatory User Identification
-- **Decision**: Prevent entering matchmaking queues, creating private rooms, or starting practice matches until the user explicitly inputs their display name.
-- **Reasoning**: Enhances player identity in multiplayer matches and prevents generic placeholder clutter in scoreboard displays.
+### 1. Mandatory Input UX & Input Shake Animation
+- **Decision**: Rather than silently assigning a fallback string like `'WordMaster'` or `'Player'`, the UI explicitly prompts the user to enter their unique display name before entering a match queue or room.
+- **Reasoning**: Ensures player identity clarity during 1v1 multiplayer matches, scoreboard displays, and match logging.
 
 ---
 
 ## 🎯 Verification & Safety Checks
-- [x] Verified `getPlayerName()` returns `null` when input is empty and focuses input field with error animation.
-- [x] All 8 unit and integration tests passed cleanly (`npm test`).
+- [x] Tested empty name submission: input shakes, warning appears, game start is blocked.
+- [x] Tested typing name: error clears automatically on input.
+- [x] Ran unit and integration tests (`npm test`): 8/8 tests passed (0 failures).
 
 ---
 
 ## 💡 Key Takeaways & Lessons
-Combining CSS keyframe shake animations with Web Audio error tones provides immediate sensory feedback when user validation fails.
+Combining visual feedback (red border glow + shake animation) with automatic focus placement creates intuitive form validation without annoying browser popups.

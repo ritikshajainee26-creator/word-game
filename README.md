@@ -15,7 +15,7 @@ A real-time, server-authoritative 2-player multiplayer word guessing game built 
 - **Simultaneous Submission Handling**: Employs an interval grace window. If both players submit correct guesses within the same interval window, the round is declared a **Draw**.
 - **Automated Matchmaking & Bot Mode**: Instant 1v1 matchmaking queue. If no human opponent is found, players can play against an automated practice AI Bot.
 - **Private Room Codes**: Play directly with friends using 6-character room codes.
-- **Resilient Edge Case Handling**: Includes disconnect grace period (30s reconnect window), state recovery, late guess rejection, duplicate guess prevention, and automatic room cleanup.
+- **Resilient Edge Case Handling**: Includes disconnect grace period (15s reconnect window), late guess rejection, duplicate guess prevention, and automatic room cleanup.
 - **Rich Visual & Audio UX**: Neon glassmorphic interface, dynamic letter flip animations, visual countdown progress rings, interactive match scoreboards, sound synthesis via Web Audio API, and audio toggles.
 
 ---
