@@ -92,9 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     historyModal: document.getElementById('historyModal'),
     btnCloseHistoryModal: document.getElementById('btnCloseHistoryModal'),
     historyPlayerName: document.getElementById('historyPlayerName'),
-    historyListContainer: document.getElementById('historyListContainer'),
-    historySearchInput: document.getElementById('historySearchInput'),
-    btnSearchHistory: document.getElementById('btnSearchHistory')
+    historyListContainer: document.getElementById('historyListContainer')
   };
 
   // --- 1. NAVIGATION & SCREEN SWITCHING ---
@@ -411,21 +409,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 9. MATCH HISTORY RENDERER & FETCH ---
-  async function fetchAndDisplayHistory(targetName) {
-    const name = (targetName || elements.playerNameInput.value || myPlayerName || '').trim();
-    const queryName = name || 'All Warriors';
+  async function fetchAndDisplayHistory() {
+    const name = validateAndGetPlayerName();
+    if (!name) return;
     
-    elements.historyPlayerName.innerText = queryName;
-    elements.historySearchInput.value = queryName;
-    elements.historyListContainer.innerHTML = '<div class="history-empty">Fetching match history...</div>';
+    elements.historyPlayerName.innerText = name;
+    elements.historyListContainer.innerHTML = '<div class="history-empty">Fetching your match history...</div>';
+    elements.historyModal.classList.remove('hidden');
 
     // 1. Try REST API endpoint
     try {
-      const res = await fetch(`/api/history/${encodeURIComponent(queryName)}`);
+      const res = await fetch(`/api/history/${encodeURIComponent(name)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          renderMatchHistory(queryName, data.history);
+          renderMatchHistory(name, data.history);
           return;
         }
       }
@@ -434,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Socket event fallback
-    socket.emit('get_match_history', { playerName: queryName });
+    socket.emit('get_match_history', { playerName: name });
   }
 
   function renderMatchHistory(playerName, history) {
@@ -442,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.historyListContainer.innerHTML = '';
 
     if (!history || history.length === 0) {
-      elements.historyListContainer.innerHTML = `<div class="history-empty">No match history records found for "${playerName}". Play a match to see history here!</div>`;
+      elements.historyListContainer.innerHTML = `<div class="history-empty">No match history records found for "${playerName}". Play a match to build your history!</div>`;
       return;
     }
 
@@ -469,21 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 10. DOM EVENT BINDINGS ---
   elements.btnOpenHistory.addEventListener('click', () => {
-    elements.historyModal.classList.remove('hidden');
-    const name = (elements.playerNameInput.value || myPlayerName || '').trim();
-    fetchAndDisplayHistory(name);
-  });
-
-  elements.btnSearchHistory.addEventListener('click', () => {
-    const query = (elements.historySearchInput.value || '').trim();
-    fetchAndDisplayHistory(query);
-  });
-
-  elements.historySearchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      const query = (elements.historySearchInput.value || '').trim();
-      fetchAndDisplayHistory(query);
-    }
+    fetchAndDisplayHistory();
   });
 
   elements.btnCloseHistoryModal.addEventListener('click', () => {
