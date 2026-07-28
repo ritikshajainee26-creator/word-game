@@ -11,7 +11,7 @@ A real-time, server-authoritative 2-player multiplayer word guessing game built 
 ## 🌟 Game Highlights
 
 - **Server-Authoritative Gameplay**: All game timers, letter reveals, guess validations, scoring, and interval ticks are computed and enforced strictly on the server.
-- **Interval-Locked Guessing**: At fixed time intervals (e.g., every 4 seconds), a hidden letter is revealed at a random position. Each player is limited to **one guess per interval window**.
+- **Interval-Locked Guessing**: At fixed time intervals (every 15 seconds), a hidden letter is revealed at a random position. Each player is limited to **one guess per interval window**.
 - **Simultaneous Submission Handling**: Employs an interval grace window. If both players submit correct guesses within the same interval window, the round is declared a **Draw**.
 - **Automated Matchmaking & Bot Mode**: Instant 1v1 matchmaking queue. If no human opponent is found, players can play against an automated practice AI Bot.
 - **Private Room Codes**: Play directly with friends using 6-character room codes.

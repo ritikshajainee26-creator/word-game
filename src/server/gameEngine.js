@@ -10,7 +10,7 @@ class GameEngine {
    * @param {string} options.roomId - Unique room identifier.
    * @param {Array<{id: string, name: string}>} options.players - Array of 2 player objects.
    * @param {number} [options.targetScore=3] - Target score required to win match.
-   * @param {number} [options.revealIntervalMs=4000] - Interval between letter reveals.
+   * @param {number} [options.revealIntervalMs=15000] - Interval between letter reveals.
    * @param {number} [options.graceWindowMs=300] - Grace window for simultaneous guesses in ms.
    * @param {Function} options.onEvent - Callback dispatcher for state changes.
    */
@@ -18,7 +18,7 @@ class GameEngine {
     roomId,
     players,
     targetScore = 3,
-    revealIntervalMs = 4000,
+    revealIntervalMs = 15000,
     graceWindowMs = 300,
     onEvent
   }) {

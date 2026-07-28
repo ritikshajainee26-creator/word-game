@@ -9,7 +9,7 @@ This document tracks all features of the Real-Time Multiplayer Word Guessing Gam
 | Feature ID | Feature Name | Description | Verification Method |
 | :--- | :--- | :--- | :--- |
 | **FEAT-01** | Server-Authoritative Engine | Centralized state engine managing rounds, timer loops, letter reveals, word masks, and scores. | Unit tests in `gameEngine.test.js` |
-| **FEAT-02** | Interval Letter Reveal Loop | Reveals 1 hidden letter at a random unrevealed position per fixed time interval (e.g. 4s). | Engine timer test & visual UI progress ring |
+| **FEAT-02** | Interval Letter Reveal Loop | Reveals 1 hidden letter at a random unrevealed position per fixed time interval (15s). | Engine timer test & visual UI progress ring |
 | **FEAT-03** | Per-Interval Single Guess Limit | Each player can only submit 1 word guess per interval tick window. | Socket validation test & UI button locking |
 | **FEAT-04** | Simultaneous Submission Grace | Concurrent correct guesses in the same interval trigger a round Draw. | Draw scenario unit test & socket simulation |
 | **FEAT-05** | No-Winner Expiration | If word is fully revealed without any correct guess, round ends with no winner. | Reveal limit unit test |

@@ -162,7 +162,7 @@ class Matchmaker {
         socketId: p.socketId
       })),
       targetScore: 3,
-      revealIntervalMs: 4000,
+      revealIntervalMs: 15000,
       graceWindowMs: 300,
       onEvent: (event, data) => this.handleEngineEvent(roomId, event, data)
     });

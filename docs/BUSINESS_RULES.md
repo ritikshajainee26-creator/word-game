@@ -13,7 +13,7 @@ This document captures the business requirements, domain rules, edge-case polici
 4. Only the word length and initial masked array are transmitted to the players. The actual word remains secret on the server.
 
 ### Interval Letter Reveal Loop
-1. An interval duration `T_interval` (default: 4000 milliseconds) is established for the round.
+1. An interval duration `T_interval` (default: 15000 milliseconds / 15 seconds) is established for the round.
 2. At each interval tick, the server randomly selects one unrevealed index from the target word and reveals its character in the masked array.
 3. The updated masked array, newly revealed index, character, and current `intervalIndex` are broadcast to all players in the room.
 
