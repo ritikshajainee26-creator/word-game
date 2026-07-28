@@ -115,6 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('connect', () => {
     elements.networkStatus.querySelector('.status-dot').className = 'status-dot online';
     elements.networkStatus.querySelector('.status-text').innerText = 'Connected';
+
+    // Attempt automatic reconnection if session exists
+    const savedSession = sessionStorage.getItem('active_match_session');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed.roomId && parsed.playerId) {
+          myPlayerId = parsed.playerId;
+          myPlayerName = parsed.playerName || myPlayerName;
+          if (elements.playerNameInput) elements.playerNameInput.value = myPlayerName;
+          socket.emit('request_reconnect', { roomId: parsed.roomId, playerId: myPlayerId });
+        }
+      } catch (e) {}
+    }
   });
 
   socket.on('disconnect', () => {
@@ -138,6 +152,13 @@ document.addEventListener('DOMContentLoaded', () => {
     stopMatchmakingTimer();
     currentRoomId = data.roomId;
     
+    // Save match session for reconnect recovery
+    sessionStorage.setItem('active_match_session', JSON.stringify({
+      roomId: currentRoomId,
+      playerId: myPlayerId,
+      playerName: myPlayerName
+    }));
+
     // Determine player names
     const me = data.players.find(p => p.id === myPlayerId);
     const opponent = data.players.find(p => p.id !== myPlayerId);
@@ -255,6 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   socket.on('match_end', (data) => {
     stopIntervalCountdown();
+    sessionStorage.removeItem('active_match_session');
     const isWinner = data.winnerId === myPlayerId;
 
     elements.resultTitle.innerText = isWinner ? '🎉 MATCH VICTORY!' : 'GAME OVER';
@@ -264,6 +286,58 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnNextRound.classList.add('hidden');
     elements.btnReturnLobby.classList.remove('hidden');
     elements.resultModal.classList.remove('hidden');
+  });
+
+  socket.on('reconnect_success', (data) => {
+    const state = data.gameState;
+    currentRoomId = state.roomId;
+
+    sessionStorage.setItem('active_match_session', JSON.stringify({
+      roomId: currentRoomId,
+      playerId: myPlayerId,
+      playerName: myPlayerName
+    }));
+
+    const me = state.players.find(p => p.id === myPlayerId);
+    const opponent = state.players.find(p => p.id !== myPlayerId);
+
+    elements.p1Name.innerText = me ? me.name : (myPlayerName || 'Player 1');
+    elements.p2Name.innerText = opponent ? opponent.name : 'Opponent';
+    opponentName = opponent ? opponent.name : 'Opponent';
+
+    elements.p1Score.innerText = me ? me.score : '0';
+    elements.p2Score.innerText = opponent ? opponent.score : '0';
+
+    elements.roundIndicator.innerText = `ROUND ${state.currentRound}`;
+    wordLength = state.wordLength;
+    currentMaskedWord = [...state.maskedWord];
+    revealIntervalMs = state.revealIntervalMs || 15000;
+    intervalIndex = state.intervalIndex;
+
+    renderTiles(currentMaskedWord);
+
+    if (state.hasGuessedInInterval) {
+      isGuessSubmittedThisInterval = true;
+      elements.guessInput.disabled = true;
+      elements.btnSubmitGuess.disabled = true;
+      elements.intervalStatus.classList.add('spent');
+      elements.intervalStatusText.innerText = '🔒 Guess submitted for this letter tick. Waiting for next tick...';
+    } else {
+      resetIntervalGuessStatus();
+    }
+
+    elements.disconnectBanner.classList.add('hidden');
+    elements.privateRoomModal.classList.add('hidden');
+    elements.resultModal.classList.add('hidden');
+    showScreen('arenaScreen');
+
+    startIntervalCountdown(revealIntervalMs);
+    addLog(`⚡ Reconnected to match! Game resumed from Round ${state.currentRound}.`, 'system');
+  });
+
+  socket.on('reconnect_failed', () => {
+    sessionStorage.removeItem('active_match_session');
+    showScreen('lobbyScreen');
   });
 
   socket.on('player_disconnected', (data) => {

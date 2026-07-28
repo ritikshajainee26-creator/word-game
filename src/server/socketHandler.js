@@ -55,7 +55,11 @@ function setupSocketHandler(io) {
       }
     });
 
-    // 3. Disconnect Handling
+    // 3. Reconnect & Disconnect Handling
+    socket.on('request_reconnect', (data = {}) => {
+      matchmaker.reconnectPlayer(socket, data);
+    });
+
     socket.on('disconnect', () => {
       matchmaker.handleDisconnect(socket);
     });

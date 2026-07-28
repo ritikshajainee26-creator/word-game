@@ -216,6 +216,36 @@ class Matchmaker {
   }
 
   /**
+   * Reconnects a player socket to an existing match within grace period.
+   */
+  reconnectPlayer(socket, { roomId, playerId }) {
+    const match = this.activeMatches.get(roomId);
+    if (!match || !match.engine || match.engine.status === 'match_ended') {
+      socket.emit('reconnect_failed', { reason: 'MATCH_EXPIRED_OR_NOT_FOUND' });
+      return;
+    }
+
+    const player = match.players.find(p => p.playerId === playerId);
+    if (!player) {
+      socket.emit('reconnect_failed', { reason: 'PLAYER_NOT_IN_MATCH' });
+      return;
+    }
+
+    // Update socket mapping
+    player.socketId = socket.id;
+    socket.join(roomId);
+    this.socketToRoom.set(socket.id, roomId);
+
+    // Call engine handleReconnect
+    match.engine.handleReconnect(playerId, socket.id);
+
+    // Send complete current game state back to reconnected client
+    socket.emit('reconnect_success', {
+      gameState: match.engine.getCurrentState(playerId)
+    });
+  }
+
+  /**
    * Handles player socket disconnection.
    */
   handleDisconnect(socket) {
