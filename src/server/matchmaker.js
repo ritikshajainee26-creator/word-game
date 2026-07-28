@@ -1,0 +1,239 @@
+const GameEngine = require('./gameEngine');
+const PracticeBot = require('./bot');
+
+/**
+ * Matchmaker managing quick match queue, private room codes, active games, and bot matches.
+ */
+class Matchmaker {
+  /**
+   * @param {Object} io - Socket.IO server instance.
+   */
+  constructor(io) {
+    this.io = io;
+    this.quickQueue = []; // [{ socketId, playerId, name }]
+    this.privateRooms = new Map(); // roomCode -> { roomCode, host, guest, engine }
+    this.activeMatches = new Map(); // roomId -> { engine, bot, players }
+    this.socketToRoom = new Map(); // socketId -> roomId
+  }
+
+  /**
+   * Handles quick match queue join request.
+   */
+  joinQuickQueue(socket, { name, playerId }) {
+    // Clean up previous queue entries for socket
+    this.leaveQuickQueue(socket);
+
+    const player = {
+      socketId: socket.id,
+      playerId: playerId || socket.id,
+      name: name || 'Player'
+    };
+
+    // Check if another player is waiting in queue
+    if (this.quickQueue.length > 0) {
+      const opponent = this.quickQueue.shift();
+      
+      // Ensure opponent socket is still connected
+      const opponentSocket = this.io.sockets.sockets.get(opponent.socketId);
+      if (!opponentSocket) {
+        // Opponent disconnected, retry pairing
+        return this.joinQuickQueue(socket, { name, playerId });
+      }
+
+      // Create 1v1 match room
+      const roomId = `room_qm_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      this.createAndStartMatch(roomId, [opponent, player]);
+    } else {
+      this.quickQueue.push(player);
+      socket.emit('matchmaker_status', {
+        status: 'queued',
+        message: 'Searching for an opponent...',
+        queuePosition: this.quickQueue.length
+      });
+    }
+  }
+
+  /**
+   * Removes socket from quick queue.
+   */
+  leaveQuickQueue(socket) {
+    this.quickQueue = this.quickQueue.filter(p => p.socketId !== socket.id);
+    socket.emit('matchmaker_status', { status: 'idle', message: 'Left queue.' });
+  }
+
+  /**
+   * Creates a private room with a 6-character room code.
+   */
+  createPrivateRoom(socket, { name, playerId }) {
+    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const host = {
+      socketId: socket.id,
+      playerId: playerId || socket.id,
+      name: name || 'Host Player'
+    };
+
+    this.privateRooms.set(roomCode, {
+      roomCode,
+      host,
+      guest: null,
+      engine: null
+    });
+
+    socket.join(`private_${roomCode}`);
+    socket.emit('private_room_created', {
+      roomCode,
+      message: `Private room created. Share code: ${roomCode}`
+    });
+  }
+
+  /**
+   * Joins an existing private room using room code.
+   */
+  joinPrivateRoom(socket, { roomCode, name, playerId }) {
+    const cleanCode = (roomCode || '').trim().toUpperCase();
+    const room = this.privateRooms.get(cleanCode);
+
+    if (!room) {
+      socket.emit('error_message', { code: 'ROOM_NOT_FOUND', message: 'Invalid room code.' });
+      return;
+    }
+
+    if (room.guest) {
+      socket.emit('error_message', { code: 'ROOM_FULL', message: 'Private room is full.' });
+      return;
+    }
+
+    const guest = {
+      socketId: socket.id,
+      playerId: playerId || socket.id,
+      name: name || 'Guest Player'
+    };
+
+    room.guest = guest;
+    socket.join(`private_${cleanCode}`);
+
+    const roomId = `room_prv_${cleanCode}`;
+    this.privateRooms.delete(cleanCode);
+
+    this.createAndStartMatch(roomId, [room.host, guest]);
+  }
+
+  /**
+   * Starts a practice match against an AI Practice Bot.
+   */
+  startBotMatch(socket, { name, playerId }) {
+    this.leaveQuickQueue(socket);
+
+    const player = {
+      socketId: socket.id,
+      playerId: playerId || socket.id,
+      name: name || 'Player'
+    };
+
+    const bot = new PracticeBot('BOT_OPPONENT', 'Bot Master 🤖');
+    const botPlayer = {
+      socketId: 'BOT_SOCKET',
+      playerId: bot.id,
+      name: bot.name
+    };
+
+    const roomId = `room_bot_${Date.now()}`;
+    const matchData = this.createAndStartMatch(roomId, [player, botPlayer], bot);
+    bot.setEngine(matchData.engine);
+  }
+
+  /**
+   * Instantiates GameEngine, joins socket room, and binds events.
+   */
+  createAndStartMatch(roomId, players, botInstance = null) {
+    players.forEach(p => {
+      const sock = this.io.sockets.sockets.get(p.socketId);
+      if (sock) {
+        sock.join(roomId);
+        this.socketToRoom.set(p.socketId, roomId);
+      }
+    });
+
+    const engine = new GameEngine({
+      roomId,
+      players: players.map(p => ({
+        id: p.playerId,
+        name: p.name,
+        socketId: p.socketId
+      })),
+      targetScore: 3,
+      revealIntervalMs: 4000,
+      graceWindowMs: 300,
+      onEvent: (event, data) => this.handleEngineEvent(roomId, event, data)
+    });
+
+    const matchInfo = { engine, bot: botInstance, players, roomId };
+    this.activeMatches.set(roomId, matchInfo);
+
+    // Notify clients that match is starting
+    this.io.to(roomId).emit('game_started', {
+      roomId,
+      players: players.map(p => ({ id: p.playerId, name: p.name }))
+    });
+
+    // Start engine match
+    engine.startMatch();
+
+    return matchInfo;
+  }
+
+  /**
+   * Relays GameEngine events to room sockets and AI bot instance.
+   */
+  handleEngineEvent(roomId, event, data) {
+    const match = this.activeMatches.get(roomId);
+
+    // Broadcast event to WebSocket room
+    this.io.to(roomId).emit(event, data);
+
+    // If bot is playing, relay round events to bot instance
+    if (match && match.bot) {
+      if (event === 'round_start') match.bot.onRoundStart(data);
+      if (event === 'letter_revealed') match.bot.onLetterRevealed(data);
+      if (event === 'match_end') match.bot.reset();
+    }
+
+    // Clean up room on match end
+    if (event === 'match_end') {
+      setTimeout(() => {
+        this.activeMatches.delete(roomId);
+      }, 5000);
+    }
+  }
+
+  /**
+   * Helper to fetch active match for a socket.
+   */
+  getMatchBySocket(socketId) {
+    const roomId = this.socketToRoom.get(socketId);
+    if (!roomId) return null;
+    return this.activeMatches.get(roomId);
+  }
+
+  /**
+   * Handles player socket disconnection.
+   */
+  handleDisconnect(socket) {
+    this.leaveQuickQueue(socket);
+
+    const roomId = this.socketToRoom.get(socket.id);
+    if (roomId) {
+      const match = this.activeMatches.get(roomId);
+      if (match && match.engine) {
+        // Find player ID for this socket
+        const player = match.players.find(p => p.socketId === socket.id);
+        if (player) {
+          match.engine.handleDisconnect(player.playerId);
+        }
+      }
+      this.socketToRoom.delete(socket.id);
+    }
+  }
+}
+
+module.exports = Matchmaker;

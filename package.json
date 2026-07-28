@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server/server.js",
     "dev": "node --watch src/server/server.js",
-    "test": "node --test tests/**/*.test.js"
+    "test": "node --test tests/gameEngine.test.js tests/integration.test.js"
   },
   "keywords": [
     "multiplayer",
@@ -20,6 +20,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.19.2",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.8.3"
   }
 }
