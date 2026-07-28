@@ -8,8 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const socket = io();
 
   // Local State
-  let myPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
-  let myPlayerName = '';
+  let myPlayerId = localStorage.getItem('word_game_player_id');
+  if (!myPlayerId) {
+    myPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem('word_game_player_id', myPlayerId);
+  }
+  
+  let myPlayerName = localStorage.getItem('word_game_player_name') || '';
   let currentRoomId = null;
   let opponentName = 'Opponent';
   let revealIntervalMs = 15000;
@@ -38,6 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
     soundToggle: document.getElementById('soundToggle'),
     soundIcon: document.getElementById('soundIcon'),
     networkStatus: document.getElementById('networkStatus'),
+    
+    // Match History & Stats
+    statMatches: document.getElementById('statMatches'),
+    statWins: document.getElementById('statWins'),
+    statLosses: document.getElementById('statLosses'),
+    statDraws: document.getElementById('statDraws'),
+    statWinRate: document.getElementById('statWinRate'),
+    historyList: document.getElementById('historyList'),
+    btnClearHistory: document.getElementById('btnClearHistory'),
     
     // Private Room Modal
     privateRoomModal: document.getElementById('privateRoomModal'),
@@ -96,6 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Populate saved player name if available
+  if (myPlayerName && elements.playerNameInput) {
+    elements.playerNameInput.value = myPlayerName;
+  }
+
   function validateAndGetPlayerName() {
     const val = (elements.playerNameInput.value || '').trim();
     if (!val) {
@@ -107,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.playerNameInput.classList.remove('input-error');
     elements.nameErrorMsg.classList.add('hidden');
     myPlayerName = val;
+    localStorage.setItem('word_game_player_name', val);
     return myPlayerName;
   }
 
@@ -114,6 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('connect', () => {
     elements.networkStatus.querySelector('.status-dot').className = 'status-dot online';
     elements.networkStatus.querySelector('.status-text').innerText = 'Connected';
+    
+    // Request player's match history on connection
+    socket.emit('get_match_history', { playerId: myPlayerId });
   });
 
   socket.on('disconnect', () => {
@@ -263,7 +286,56 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnNextRound.classList.add('hidden');
     elements.btnReturnLobby.classList.remove('hidden');
     elements.resultModal.classList.remove('hidden');
+
+    // Fetch updated match history after match ends
+    setTimeout(() => {
+      socket.emit('get_match_history', { playerId: myPlayerId });
+    }, 1000);
   });
+
+  socket.on('match_history_updated', (data) => {
+    renderHistoryUI(data);
+  });
+
+  function renderHistoryUI(data = {}) {
+    const stats = data.stats || { totalMatches: 0, wins: 0, losses: 0, draws: 0, winRate: 0 };
+    const history = data.history || [];
+
+    if (elements.statMatches) elements.statMatches.innerText = stats.totalMatches;
+    if (elements.statWins) elements.statWins.innerText = stats.wins;
+    if (elements.statLosses) elements.statLosses.innerText = stats.losses;
+    if (elements.statDraws) elements.statDraws.innerText = stats.draws;
+    if (elements.statWinRate) elements.statWinRate.innerText = `${stats.winRate}%`;
+
+    if (!elements.historyList) return;
+
+    if (history.length === 0) {
+      elements.historyList.innerHTML = '<div class="history-empty">No matches played yet. Start a match to track your history!</div>';
+      return;
+    }
+
+    elements.historyList.innerHTML = '';
+    history.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'history-item';
+      
+      const badgeClass = item.result === 'WIN' ? 'win' : item.result === 'LOSS' ? 'loss' : 'draw';
+      const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+      row.innerHTML = `
+        <div class="history-info">
+          <span class="result-badge ${badgeClass}">${item.result}</span>
+          <span class="history-opponent">vs ${item.opponentName || 'Opponent'}</span>
+          <span class="history-score">${item.myScore} - ${item.opponentScore}</span>
+        </div>
+        <div class="history-meta">
+          <span>${item.gameMode || 'Match'}</span>
+          <span>${timeStr}</span>
+        </div>
+      `;
+      elements.historyList.appendChild(row);
+    });
+  }
 
   socket.on('player_disconnected', (data) => {
     if (data.playerId !== myPlayerId) {
@@ -433,6 +505,15 @@ document.addEventListener('DOMContentLoaded', () => {
   elements.guessInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') submitGuess();
   });
+
+  // Clear History
+  if (elements.btnClearHistory) {
+    elements.btnClearHistory.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear your match history?')) {
+        socket.emit('clear_match_history', { playerId: myPlayerId });
+      }
+    });
+  }
 
   // Sound Toggle
   elements.soundToggle.addEventListener('click', () => {

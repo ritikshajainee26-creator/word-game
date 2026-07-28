@@ -55,7 +55,25 @@ function setupSocketHandler(io) {
       }
     });
 
-    // 3. Disconnect Handling
+    // 3. Match History & Stats
+    socket.on('get_match_history', (data = {}) => {
+      const matchHistoryStore = require('./matchHistoryStore');
+      const playerId = data.playerId || socket.id;
+      const historyData = matchHistoryStore.getUserHistory(playerId);
+      socket.emit('match_history_updated', historyData);
+    });
+
+    socket.on('clear_match_history', (data = {}) => {
+      const matchHistoryStore = require('./matchHistoryStore');
+      const playerId = data.playerId || socket.id;
+      matchHistoryStore.clearUserHistory(playerId);
+      socket.emit('match_history_updated', {
+        history: [],
+        stats: { totalMatches: 0, wins: 0, losses: 0, draws: 0, winRate: 0 }
+      });
+    });
+
+    // 4. Disconnect Handling
     socket.on('disconnect', () => {
       matchmaker.handleDisconnect(socket);
     });

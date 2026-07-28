@@ -1,5 +1,6 @@
 const GameEngine = require('./gameEngine');
 const PracticeBot = require('./bot');
+const matchHistoryStore = require('./matchHistoryStore');
 
 /**
  * Matchmaker managing quick match queue, private room codes, active games, and bot matches.
@@ -198,12 +199,63 @@ class Matchmaker {
       if (event === 'match_end') match.bot.reset();
     }
 
-    // Clean up room on match end
+    // Clean up room and record match history on match end
     if (event === 'match_end') {
+      if (match && match.players) {
+        this.recordMatchHistory(match, data);
+      }
+
       setTimeout(() => {
         this.activeMatches.delete(roomId);
       }, 5000);
     }
+  }
+
+  /**
+   * Records match history for both players in a completed match.
+   */
+  recordMatchHistory(match, matchEndData) {
+    const winnerId = matchEndData.winnerId;
+    const finalScores = matchEndData.finalScores || {};
+    const gameMode = match.roomId.includes('bot')
+      ? 'Practice vs AI'
+      : match.roomId.includes('prv')
+      ? 'Private Room'
+      : 'Quick Match';
+
+    match.players.forEach(player => {
+      // Don't save history for the automated AI Bot
+      if (player.playerId === 'BOT_OPPONENT') return;
+
+      const opponent = match.players.find(p => p.playerId !== player.playerId);
+      const myScore = finalScores[player.playerId] || 0;
+      const opponentScore = opponent ? (finalScores[opponent.playerId] || 0) : 0;
+
+      let result = 'DRAW';
+      if (winnerId === player.playerId) {
+        result = 'WIN';
+      } else if (winnerId && winnerId !== player.playerId) {
+        result = 'LOSS';
+      }
+
+      matchHistoryStore.addRecord(player.playerId, {
+        opponentName: opponent ? opponent.name : 'Opponent',
+        opponentId: opponent ? opponent.playerId : 'unknown',
+        myScore,
+        opponentScore,
+        result,
+        reason: matchEndData.reason || 'MATCH_FINISHED',
+        totalRounds: match.engine ? match.engine.currentRound : 1,
+        gameMode
+      });
+
+      // Send updated history to player socket if online
+      const sock = this.io.sockets.sockets.get(player.socketId);
+      if (sock) {
+        const historyData = matchHistoryStore.getUserHistory(player.playerId);
+        sock.emit('match_history_updated', historyData);
+      }
+    });
   }
 
   /**

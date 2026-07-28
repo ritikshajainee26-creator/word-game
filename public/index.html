@@ -80,6 +80,43 @@
               <button class="btn btn-outline btn-full">Practice Now</button>
             </div>
           </div>
+
+          <!-- USER MATCH HISTORY & STATS SECTION -->
+          <div class="history-section">
+            <div class="history-header">
+              <h3 class="section-title">📜 Performance Stats & Match History</h3>
+              <button class="btn btn-outline btn-sm" id="btnClearHistory">Clear History</button>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-box">
+                <span class="stat-number" id="statMatches">0</span>
+                <span class="stat-label">Matches</span>
+              </div>
+              <div class="stat-box win">
+                <span class="stat-number" id="statWins">0</span>
+                <span class="stat-label">Wins</span>
+              </div>
+              <div class="stat-box loss">
+                <span class="stat-number" id="statLosses">0</span>
+                <span class="stat-label">Losses</span>
+              </div>
+              <div class="stat-box draw">
+                <span class="stat-number" id="statDraws">0</span>
+                <span class="stat-label">Draws</span>
+              </div>
+              <div class="stat-box winrate">
+                <span class="stat-number" id="statWinRate">0%</span>
+                <span class="stat-label">Win Rate</span>
+              </div>
+            </div>
+
+            <div class="history-list-container">
+              <div class="history-list" id="historyList">
+                <div class="history-empty">No matches played yet. Start a match to track your history!</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Private Room Code Modal -->
