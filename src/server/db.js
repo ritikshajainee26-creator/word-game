@@ -1,15 +1,56 @@
+const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
 
 /**
- * PostgreSQL Database Module with transparent in-memory fallback.
+ * PostgreSQL Database Module with transparent disk-backed fallback storage.
  * Manages user match histories, game room results, and player win/loss records.
  */
 
-// In-Memory Fallback Storage
-const inMemoryMatches = [];
-const inMemoryUserHistory = [];
+// Disk File Backup Storage Path
+const DATA_DIR = path.join(__dirname, '../../data');
+const DATA_FILE = path.join(DATA_DIR, 'match_history.json');
+
+// In-Memory Storage & Hydration from Disk
+let inMemoryMatches = [];
+let inMemoryUserHistory = [];
 let isPgConnected = false;
 let pool = null;
+
+function loadDiskFallback() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = fs.readFileSync(DATA_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      inMemoryMatches = parsed.matches || [];
+      inMemoryUserHistory = parsed.userHistory || [];
+      console.log(`💾 Loaded ${inMemoryUserHistory.length} match history records from disk backup.`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Disk fallback storage read warning:', err.message);
+  }
+}
+
+function saveDiskFallback() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(
+      DATA_FILE,
+      JSON.stringify({ matches: inMemoryMatches, userHistory: inMemoryUserHistory }, null, 2),
+      'utf8'
+    );
+  } catch (err) {
+    console.warn('⚠️ Disk fallback storage write warning:', err.message);
+  }
+}
+
+// Hydrate disk backup on module load
+loadDiskFallback();
 
 // Initialize PostgreSQL Pool
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/word_game';
@@ -177,7 +218,10 @@ async function saveMatchResult(matchData) {
     createdAt
   });
 
-  return { success: true, matchId, storage: 'in_memory' };
+  // Sync disk backup file
+  saveDiskFallback();
+
+  return { success: true, matchId, storage: isPgConnected ? 'postgresql' : 'disk_backup' };
 }
 
 /**
