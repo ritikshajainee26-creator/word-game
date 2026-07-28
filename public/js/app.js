@@ -92,7 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
     historyModal: document.getElementById('historyModal'),
     btnCloseHistoryModal: document.getElementById('btnCloseHistoryModal'),
     historyPlayerName: document.getElementById('historyPlayerName'),
-    historyListContainer: document.getElementById('historyListContainer')
+    historyListContainer: document.getElementById('historyListContainer'),
+    historySearchInput: document.getElementById('historySearchInput'),
+    btnSearchHistory: document.getElementById('btnSearchHistory')
   };
 
   // --- 1. NAVIGATION & SCREEN SWITCHING ---
@@ -408,13 +410,39 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.matchLog.scrollTop = elements.matchLog.scrollHeight;
   }
 
-  // --- 9. MATCH HISTORY RENDERER ---
+  // --- 9. MATCH HISTORY RENDERER & FETCH ---
+  async function fetchAndDisplayHistory(targetName) {
+    const name = (targetName || elements.playerNameInput.value || myPlayerName || '').trim();
+    const queryName = name || 'All Warriors';
+    
+    elements.historyPlayerName.innerText = queryName;
+    elements.historySearchInput.value = queryName;
+    elements.historyListContainer.innerHTML = '<div class="history-empty">Fetching match history...</div>';
+
+    // 1. Try REST API endpoint
+    try {
+      const res = await fetch(`/api/history/${encodeURIComponent(queryName)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          renderMatchHistory(queryName, data.history);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('REST API history fetch fallback to socket:', err.message);
+    }
+
+    // 2. Socket event fallback
+    socket.emit('get_match_history', { playerName: queryName });
+  }
+
   function renderMatchHistory(playerName, history) {
     elements.historyPlayerName.innerText = playerName;
     elements.historyListContainer.innerHTML = '';
 
     if (!history || history.length === 0) {
-      elements.historyListContainer.innerHTML = '<div class="history-empty">No match history records found for this warrior.</div>';
+      elements.historyListContainer.innerHTML = `<div class="history-empty">No match history records found for "${playerName}". Play a match to see history here!</div>`;
       return;
     }
 
@@ -441,12 +469,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 10. DOM EVENT BINDINGS ---
   elements.btnOpenHistory.addEventListener('click', () => {
-    const name = validateAndGetPlayerName();
-    if (!name) return;
-    elements.historyPlayerName.innerText = name;
-    elements.historyListContainer.innerHTML = '<div class="history-empty">Fetching match history...</div>';
     elements.historyModal.classList.remove('hidden');
-    socket.emit('get_match_history', { playerName: name });
+    const name = (elements.playerNameInput.value || myPlayerName || '').trim();
+    fetchAndDisplayHistory(name);
+  });
+
+  elements.btnSearchHistory.addEventListener('click', () => {
+    const query = (elements.historySearchInput.value || '').trim();
+    fetchAndDisplayHistory(query);
+  });
+
+  elements.historySearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      const query = (elements.historySearchInput.value || '').trim();
+      fetchAndDisplayHistory(query);
+    }
   });
 
   elements.btnCloseHistoryModal.addEventListener('click', () => {

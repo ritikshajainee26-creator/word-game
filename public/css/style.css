@@ -933,6 +933,18 @@ body {
   max-width: 600px;
 }
 
+.history-search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.history-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 .history-list {
   max-height: 380px;
   overflow-y: auto;
