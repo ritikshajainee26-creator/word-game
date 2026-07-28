@@ -442,6 +442,29 @@ class GameEngine {
   }
 
   /**
+   * Returns a complete state snapshot of the active match for reconnection restoration.
+   */
+  getStateSnapshot() {
+    const p1 = this.players[0];
+    const p2 = this.players[1];
+    return {
+      roomId: this.roomId,
+      status: this.status,
+      currentRound: this.currentRound,
+      targetScore: this.targetScore,
+      wordLength: this.targetWord ? this.targetWord.length : 0,
+      maskedWord: [...this.maskedWord],
+      scores: this.getScores(),
+      intervalIndex: this.intervalIndex,
+      revealIntervalMs: this.revealIntervalMs,
+      remainingUnrevealed: this.unrevealedIndices.length,
+      players: this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected, score: p.score })),
+      p1Name: p1 ? p1.name : 'Player 1',
+      p2Name: p2 ? p2.name : 'Player 2'
+    };
+  }
+
+  /**
    * Helper to return current score map.
    */
   getScores() {

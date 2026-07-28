@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server/server.js",
     "dev": "node --watch src/server/server.js",
-    "test": "node --test tests/gameEngine.test.js tests/integration.test.js tests/matchHistoryStore.test.js"
+    "test": "node --test tests/gameEngine.test.js tests/integration.test.js tests/matchHistoryStore.test.js tests/reconnect.test.js"
   },
   "keywords": [
     "multiplayer",

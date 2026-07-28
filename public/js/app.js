@@ -7,8 +7,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Socket.IO Client Connection
   const socket = io();
 
-  // Local State
-  let myPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
+  // Local State & Persistent Session IDs
+  let storedPlayerId = null;
+  try {
+    storedPlayerId = localStorage.getItem('word_clash_player_id');
+    if (!storedPlayerId) {
+      storedPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('word_clash_player_id', storedPlayerId);
+    }
+  } catch (e) {
+    storedPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
+  }
+
+  let myPlayerId = storedPlayerId;
   let myPlayerName = '';
   let currentRoomId = null;
   let opponentName = 'Opponent';
@@ -133,11 +144,69 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('connect', () => {
     elements.networkStatus.querySelector('.status-dot').className = 'status-dot online';
     elements.networkStatus.querySelector('.status-text').innerText = 'Connected';
+
+    // Auto-reconnect to active match on browser refresh or socket reconnect
+    try {
+      const activeMatchId = localStorage.getItem('word_clash_match_id');
+      const savedPlayerId = localStorage.getItem('word_clash_player_id') || myPlayerId;
+      const savedToken = localStorage.getItem('word_clash_session_token');
+
+      if (activeMatchId && savedPlayerId && savedToken) {
+        socket.emit('request_reconnect', {
+          matchId: activeMatchId,
+          playerId: savedPlayerId,
+          sessionToken: savedToken
+        });
+      }
+    } catch (e) {}
   });
 
   socket.on('disconnect', () => {
     elements.networkStatus.querySelector('.status-dot').className = 'status-dot';
     elements.networkStatus.querySelector('.status-text').innerText = 'Reconnecting...';
+  });
+
+  socket.on('reconnect_success', (data) => {
+    stopMatchmakingTimer();
+    currentRoomId = data.matchId;
+    const snap = data.stateSnapshot;
+
+    // Persist active match tokens
+    try {
+      localStorage.setItem('word_clash_match_id', data.matchId);
+      if (data.sessionToken) localStorage.setItem('word_clash_session_token', data.sessionToken);
+    } catch (e) {}
+
+    // Restore player UI
+    if (snap.players) {
+      const me = snap.players.find(p => p.id === myPlayerId);
+      const opponent = snap.players.find(p => p.id !== myPlayerId);
+      elements.p1Name.innerText = me ? me.name : snap.p1Name;
+      elements.p2Name.innerText = opponent ? opponent.name : snap.p2Name;
+      if (snap.scores) {
+        elements.p1Score.innerText = snap.scores[myPlayerId] ?? '0';
+        const oppId = Object.keys(snap.scores).find(id => id !== myPlayerId);
+        elements.p2Score.innerText = oppId ? snap.scores[oppId] : '0';
+      }
+    }
+
+    elements.roundIndicator.innerText = `ROUND ${snap.currentRound}`;
+    revealIntervalMs = snap.revealIntervalMs || 15000;
+    currentMaskedWord = [...snap.maskedWord];
+    intervalIndex = snap.intervalIndex;
+
+    renderTiles(currentMaskedWord);
+    resetIntervalGuessStatus();
+    if (snap.status === 'in_progress') {
+      startIntervalCountdown(revealIntervalMs);
+    }
+
+    elements.privateRoomModal.classList.add('hidden');
+    elements.resultModal.classList.add('hidden');
+    elements.disconnectBanner.classList.add('hidden');
+    showScreen('arenaScreen');
+
+    addLog('⚡ Reconnected to active match! Game state restored.', 'system');
   });
 
   socket.on('matchmaker_status', (data) => {
@@ -155,7 +224,15 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('game_started', (data) => {
     stopMatchmakingTimer();
     currentRoomId = data.roomId;
+    if (data.playerId) myPlayerId = data.playerId;
     
+    // Persist active match session tokens
+    try {
+      localStorage.setItem('word_clash_match_id', data.roomId);
+      localStorage.setItem('word_clash_player_id', myPlayerId);
+      if (data.sessionToken) localStorage.setItem('word_clash_session_token', data.sessionToken);
+    } catch (e) {}
+
     // Determine player names
     const me = data.players.find(p => p.id === myPlayerId);
     const opponent = data.players.find(p => p.id !== myPlayerId);
@@ -274,6 +351,12 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('match_end', (data) => {
     stopIntervalCountdown();
     const isWinner = data.winnerId === myPlayerId;
+
+    // Clear active match session tokens
+    try {
+      localStorage.removeItem('word_clash_match_id');
+      localStorage.removeItem('word_clash_session_token');
+    } catch (e) {}
 
     elements.resultTitle.innerText = isWinner ? '🎉 MATCH VICTORY!' : 'GAME OVER';
     elements.resultIcon.innerText = isWinner ? '👑' : '🏁';

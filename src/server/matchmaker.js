@@ -1,6 +1,7 @@
 const GameEngine = require('./gameEngine');
 const PracticeBot = require('./bot');
 const db = require('./db');
+const sessionManager = require('./sessionManager');
 
 /**
  * Matchmaker managing quick match queue, private room codes, active games, and bot matches.
@@ -171,10 +172,18 @@ class Matchmaker {
     const matchInfo = { engine, bot: botInstance, players, roomId };
     this.activeMatches.set(roomId, matchInfo);
 
-    // Notify clients that match is starting
-    this.io.to(roomId).emit('game_started', {
-      roomId,
-      players: players.map(p => ({ id: p.playerId, name: p.name }))
+    // Generate persistent session tokens for human players
+    players.forEach(p => {
+      p.sessionToken = sessionManager.createSession(p.playerId, roomId, p.name);
+      const sock = this.io.sockets.sockets.get(p.socketId);
+      if (sock) {
+        sock.emit('game_started', {
+          roomId,
+          playerId: p.playerId,
+          sessionToken: p.sessionToken,
+          players: players.map(pl => ({ id: pl.playerId, name: pl.name }))
+        });
+      }
     });
 
     // Start engine match
@@ -219,6 +228,53 @@ class Matchmaker {
         this.activeMatches.delete(roomId);
       }, 5000);
     }
+  }
+
+  /**
+   * Reconnects a player socket to an active match room.
+   */
+  reconnectPlayer(socket, { matchId, playerId, sessionToken }) {
+    if (!matchId || !playerId) {
+      socket.emit('error_message', { code: 'INVALID_RECONNECT', message: 'Missing reconnect credentials.' });
+      return false;
+    }
+
+    const isValidSession = sessionManager.validateSession(sessionToken, playerId, matchId);
+    const match = this.activeMatches.get(matchId);
+
+    if (!match || !match.engine) {
+      socket.emit('error_message', { code: 'MATCH_EXPIRED', message: 'Active match expired or concluded.' });
+      return false;
+    }
+
+    if (!isValidSession) {
+      socket.emit('error_message', { code: 'INVALID_SESSION', message: 'Reconnection session invalid or expired.' });
+      return false;
+    }
+
+    // Re-bind socket to room and engine
+    socket.join(matchId);
+    this.socketToRoom.set(socket.id, matchId);
+
+    // Update socket mapping in player record
+    const playerRecord = match.players.find(p => p.playerId === playerId);
+    if (playerRecord) {
+      playerRecord.socketId = socket.id;
+    }
+
+    // Resume engine timer & retrieve state snapshot
+    match.engine.handleReconnect(playerId, socket.id);
+    const stateSnapshot = match.engine.getStateSnapshot();
+
+    // Send reconnect_success event to reconnected socket
+    socket.emit('reconnect_success', {
+      matchId,
+      playerId,
+      sessionToken,
+      stateSnapshot
+    });
+
+    return true;
   }
 
   /**

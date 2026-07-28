@@ -16,7 +16,7 @@ This document tracks all features of the Real-Time Multiplayer Word Guessing Gam
 | **FEAT-06** | Real-Time Matchmaking Queue | Automatic 1v1 queue matching active online players into game rooms. | Matchmaker integration test |
 | **FEAT-07** | Private Room Codes | 6-character custom room codes to play directly with friends. | Socket test & UI join flow |
 | **FEAT-08** | Practice AI Bot Mode | Play against an automated AI bot with realistic guess timing. | Bot unit test & solo game play |
-| **FEAT-09** | Disconnect Grace Period | 15-second reconnection grace period for players experiencing network drops. | Socket disconnect simulation test |
+| **FEAT-09** | Disconnect & Reconnect Grace | 15-second forfeit grace period with persistent crypto session tokens (`sessionManager.js`), socket re-binding, state snapshot restoration, and auto-recovery on browser refresh. | `reconnect.test.js` & socket disconnect simulation |
 | **FEAT-10** | Neon Glassmorphism UI | Responsive single-page interface with CSS glass visual effects and custom typography. | Browser UI inspection |
 | **FEAT-11** | Dynamic Tile Flip Animations | Visual 3D flip animation for newly revealed letter tiles. | Browser visual inspection |
 | **FEAT-12** | Web Audio API Sound Effects | Synthesized sound effects for letter reveal, guess success/failure, round win, and match end. | Web Audio API browser play |

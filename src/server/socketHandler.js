@@ -32,6 +32,10 @@ function setupSocketHandler(io) {
       matchmaker.startBotMatch(socket, data);
     });
 
+    socket.on('request_reconnect', (data = {}) => {
+      matchmaker.reconnectPlayer(socket, data);
+    });
+
     // Private User Match History Authorization
     socket.on('get_match_history', async (data = {}) => {
       const requestedName = (data.playerName || '').trim();

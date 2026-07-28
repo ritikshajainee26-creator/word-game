@@ -71,6 +71,54 @@
       "roundsPlayed": 1,
       "endReason": "MATCH_COMPLETED",
       "createdAt": "2026-07-28T10:06:09.509Z"
+    },
+    {
+      "id": "room_qm_1785233694024_876",
+      "roomId": "room_qm_1785233694024_876",
+      "player1Name": "ritiksha",
+      "player2Name": "rj",
+      "winnerName": "ritiksha",
+      "player1Score": 0,
+      "player2Score": 1,
+      "roundsPlayed": 2,
+      "endReason": "WIN_BY_FORFEIT",
+      "createdAt": "2026-07-28T10:18:54.234Z"
+    },
+    {
+      "id": "test_match_1785234074226",
+      "roomId": "room_test",
+      "player1Name": "Viper",
+      "player2Name": "Shadow",
+      "winnerName": "Viper",
+      "player1Score": 3,
+      "player2Score": 1,
+      "roundsPlayed": 4,
+      "endReason": "TARGET_SCORE_REACHED",
+      "createdAt": "2026-07-28T10:21:14.227Z"
+    },
+    {
+      "id": "test_match_ci_1785234074230",
+      "roomId": "room_1",
+      "player1Name": "CyberNinja",
+      "player2Name": "Bot Master 🤖",
+      "winnerName": "CyberNinja",
+      "player1Score": 3,
+      "player2Score": 0,
+      "roundsPlayed": 1,
+      "endReason": "MATCH_COMPLETED",
+      "createdAt": "2026-07-28T10:21:14.230Z"
+    },
+    {
+      "id": "room_qm_1785234074661_581",
+      "roomId": "room_qm_1785234074661_581",
+      "player1Name": "Player One",
+      "player2Name": "Player Two",
+      "winnerName": "Player Two",
+      "player1Score": 0,
+      "player2Score": 0,
+      "roundsPlayed": 1,
+      "endReason": "WIN_BY_FORFEIT",
+      "createdAt": "2026-07-28T10:21:29.808Z"
     }
   ],
   "userHistory": [
@@ -193,6 +241,86 @@
       "playerScore": 0,
       "opponentScore": 3,
       "createdAt": "2026-07-28T10:06:09.509Z"
+    },
+    {
+      "id": 13,
+      "playerName": "ritiksha",
+      "matchId": "room_qm_1785233694024_876",
+      "opponentName": "rj",
+      "result": "WIN",
+      "playerScore": 0,
+      "opponentScore": 1,
+      "createdAt": "2026-07-28T10:18:54.234Z"
+    },
+    {
+      "id": 14,
+      "playerName": "rj",
+      "matchId": "room_qm_1785233694024_876",
+      "opponentName": "ritiksha",
+      "result": "LOSS",
+      "playerScore": 1,
+      "opponentScore": 0,
+      "createdAt": "2026-07-28T10:18:54.234Z"
+    },
+    {
+      "id": 15,
+      "playerName": "Viper",
+      "matchId": "test_match_1785234074226",
+      "opponentName": "Shadow",
+      "result": "WIN",
+      "playerScore": 3,
+      "opponentScore": 1,
+      "createdAt": "2026-07-28T10:21:14.227Z"
+    },
+    {
+      "id": 16,
+      "playerName": "Shadow",
+      "matchId": "test_match_1785234074226",
+      "opponentName": "Viper",
+      "result": "LOSS",
+      "playerScore": 1,
+      "opponentScore": 3,
+      "createdAt": "2026-07-28T10:21:14.227Z"
+    },
+    {
+      "id": 17,
+      "playerName": "CyberNinja",
+      "matchId": "test_match_ci_1785234074230",
+      "opponentName": "Bot Master 🤖",
+      "result": "WIN",
+      "playerScore": 3,
+      "opponentScore": 0,
+      "createdAt": "2026-07-28T10:21:14.230Z"
+    },
+    {
+      "id": 18,
+      "playerName": "Bot Master 🤖",
+      "matchId": "test_match_ci_1785234074230",
+      "opponentName": "CyberNinja",
+      "result": "LOSS",
+      "playerScore": 0,
+      "opponentScore": 3,
+      "createdAt": "2026-07-28T10:21:14.230Z"
+    },
+    {
+      "id": 19,
+      "playerName": "Player One",
+      "matchId": "room_qm_1785234074661_581",
+      "opponentName": "Player Two",
+      "result": "DRAW",
+      "playerScore": 0,
+      "opponentScore": 0,
+      "createdAt": "2026-07-28T10:21:29.808Z"
+    },
+    {
+      "id": 20,
+      "playerName": "Player Two",
+      "matchId": "room_qm_1785234074661_581",
+      "opponentName": "Player One",
+      "result": "DRAW",
+      "playerScore": 0,
+      "opponentScore": 0,
+      "createdAt": "2026-07-28T10:21:29.808Z"
     }
   ]
 }
