@@ -53,8 +53,9 @@
 
         <div class="card lobby-card">
           <div class="form-group">
-            <label for="playerNameInput" class="form-label">Display Name</label>
-            <input type="text" id="playerNameInput" class="form-input" placeholder="Enter your warrior tag..." maxlength="16" value="WordMaster">
+            <label for="playerNameInput" class="form-label">Display Name <span class="required-star">*</span></label>
+            <input type="text" id="playerNameInput" class="form-input" placeholder="Enter your name to start playing..." maxlength="16" autofocus>
+            <span class="name-error-msg hidden" id="nameErrorMsg">⚠️ Please enter your name before starting!</span>
           </div>
 
           <div class="mode-grid">

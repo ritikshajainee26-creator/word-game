@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Local State
   let myPlayerId = 'p_' + Math.random().toString(36).substring(2, 9);
-  let myPlayerName = 'WordMaster';
+  let myPlayerName = '';
   let currentRoomId = null;
   let opponentName = 'Opponent';
   let revealIntervalMs = 15000;
@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Inputs & Buttons
     playerNameInput: document.getElementById('playerNameInput'),
+    nameErrorMsg: document.getElementById('nameErrorMsg'),
     btnQuickMatch: document.getElementById('btnQuickMatch'),
     btnPrivateRoom: document.getElementById('btnPrivateRoom'),
     btnPracticeBot: document.getElementById('btnPracticeBot'),
@@ -97,7 +98,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getPlayerName() {
     const val = (elements.playerNameInput.value || '').trim();
-    myPlayerName = val || 'WordMaster';
+    if (!val) {
+      elements.playerNameInput.classList.add('error');
+      elements.nameErrorMsg.classList.remove('hidden');
+      elements.playerNameInput.focus();
+      if (window.soundFx) window.soundFx.playWrongGuess();
+      return null;
+    }
+    elements.playerNameInput.classList.remove('error');
+    elements.nameErrorMsg.classList.add('hidden');
+    myPlayerName = val;
     return myPlayerName;
   }
 
@@ -388,18 +398,31 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.matchLog.scrollTop = elements.matchLog.scrollHeight;
   }
 
+  // Clear name error on typing
+  elements.playerNameInput.addEventListener('input', () => {
+    if (elements.playerNameInput.value.trim()) {
+      elements.playerNameInput.classList.remove('error');
+      elements.nameErrorMsg.classList.add('hidden');
+    }
+  });
+
   // --- 8. DOM EVENT BINDINGS ---
   elements.btnQuickMatch.addEventListener('click', () => {
-    socket.emit('join_queue', { name: getPlayerName(), playerId: myPlayerId });
+    const name = getPlayerName();
+    if (!name) return;
+    socket.emit('join_queue', { name, playerId: myPlayerId });
   });
 
   elements.btnPracticeBot.addEventListener('click', () => {
-    socket.emit('start_bot_match', { name: getPlayerName(), playerId: myPlayerId });
+    const name = getPlayerName();
+    if (!name) return;
+    socket.emit('start_bot_match', { name, playerId: myPlayerId });
   });
 
   elements.btnSwitchToBot.addEventListener('click', () => {
+    const name = getPlayerName() || 'Player';
     stopMatchmakingTimer();
-    socket.emit('start_bot_match', { name: getPlayerName(), playerId: myPlayerId });
+    socket.emit('start_bot_match', { name, playerId: myPlayerId });
   });
 
   elements.btnCancelMatchmaking.addEventListener('click', () => {
@@ -423,8 +446,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Private Room Setup Modal
   elements.btnPrivateRoom.addEventListener('click', () => {
+    const name = getPlayerName();
+    if (!name) return;
     elements.privateRoomModal.classList.remove('hidden');
   });
+
   elements.btnClosePrivateModal.addEventListener('click', () => {
     elements.privateRoomModal.classList.add('hidden');
   });
@@ -444,13 +470,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   elements.btnConfirmCreateRoom.addEventListener('click', () => {
-    socket.emit('create_private_room', { name: getPlayerName(), playerId: myPlayerId });
+    const name = getPlayerName();
+    if (!name) return;
+    socket.emit('create_private_room', { name, playerId: myPlayerId });
   });
 
   elements.btnConfirmJoinRoom.addEventListener('click', () => {
+    const name = getPlayerName();
+    if (!name) return;
     const code = (elements.joinRoomCodeInput.value || '').trim();
     if (code) {
-      socket.emit('join_private_room', { roomCode: code, name: getPlayerName(), playerId: myPlayerId });
+      socket.emit('join_private_room', { roomCode: code, name, playerId: myPlayerId });
     }
   });
 
