@@ -26,6 +26,7 @@
         <h1 class="brand-title">WORD<span class="gradient-text">CLASH</span></h1>
       </div>
       <div class="header-actions">
+        <button class="btn btn-outline btn-sm" id="btnOpenHistory" title="View Match History">📜 History</button>
         <div class="status-badge" id="networkStatus">
           <span class="status-dot online"></span>
           <span class="status-text">Connected</span>
@@ -78,43 +79,6 @@
               <h3 class="mode-title">Practice vs AI</h3>
               <p class="mode-desc">Test your speed against Bot Master</p>
               <button class="btn btn-outline btn-full">Practice Now</button>
-            </div>
-          </div>
-
-          <!-- USER MATCH HISTORY & STATS SECTION -->
-          <div class="history-section">
-            <div class="history-header">
-              <h3 class="section-title">📜 Performance Stats & Match History</h3>
-              <button class="btn btn-outline btn-sm" id="btnClearHistory">Clear History</button>
-            </div>
-
-            <div class="stats-grid">
-              <div class="stat-box">
-                <span class="stat-number" id="statMatches">0</span>
-                <span class="stat-label">Matches</span>
-              </div>
-              <div class="stat-box win">
-                <span class="stat-number" id="statWins">0</span>
-                <span class="stat-label">Wins</span>
-              </div>
-              <div class="stat-box loss">
-                <span class="stat-number" id="statLosses">0</span>
-                <span class="stat-label">Losses</span>
-              </div>
-              <div class="stat-box draw">
-                <span class="stat-number" id="statDraws">0</span>
-                <span class="stat-label">Draws</span>
-              </div>
-              <div class="stat-box winrate">
-                <span class="stat-number" id="statWinRate">0%</span>
-                <span class="stat-label">Win Rate</span>
-              </div>
-            </div>
-
-            <div class="history-list-container">
-              <div class="history-list" id="historyList">
-                <div class="history-empty">No matches played yet. Start a match to track your history!</div>
-              </div>
             </div>
           </div>
         </div>
@@ -263,6 +227,19 @@
           <div class="result-actions" id="resultActions">
             <button class="btn btn-primary btn-full" id="btnNextRound">Next Round</button>
             <button class="btn btn-outline btn-full hidden" id="btnReturnLobby">Return to Lobby</button>
+          </div>
+        </div>
+      <!-- 5. MATCH HISTORY MODAL -->
+      <div class="modal-backdrop hidden" id="historyModal">
+        <div class="card modal-card history-card">
+          <div class="modal-header">
+            <h3>📜 Match History - <span id="historyPlayerName">Player</span></h3>
+            <button class="btn-close" id="btnCloseHistoryModal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="history-list" id="historyListContainer">
+              <div class="history-empty">Loading match history...</div>
+            </div>
           </div>
         </div>
       </div>

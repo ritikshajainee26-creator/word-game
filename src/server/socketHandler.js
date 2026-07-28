@@ -28,6 +28,15 @@ function setupSocketHandler(io) {
       matchmaker.startBotMatch(socket, data);
     });
 
+    socket.on('get_match_history', async (data = {}) => {
+      const db = require('./db');
+      const history = await db.getUserMatchHistory(data.playerName);
+      socket.emit('match_history_data', {
+        playerName: data.playerName,
+        history
+      });
+    });
+
     // 2. Gameplay Events
     socket.on('submit_guess', (data = {}) => {
       const match = matchmaker.getMatchBySocket(socket.id);
@@ -55,25 +64,7 @@ function setupSocketHandler(io) {
       }
     });
 
-    // 3. Match History & Stats
-    socket.on('get_match_history', (data = {}) => {
-      const matchHistoryStore = require('./matchHistoryStore');
-      const playerId = data.playerId || socket.id;
-      const historyData = matchHistoryStore.getUserHistory(playerId);
-      socket.emit('match_history_updated', historyData);
-    });
-
-    socket.on('clear_match_history', (data = {}) => {
-      const matchHistoryStore = require('./matchHistoryStore');
-      const playerId = data.playerId || socket.id;
-      matchHistoryStore.clearUserHistory(playerId);
-      socket.emit('match_history_updated', {
-        history: [],
-        stats: { totalMatches: 0, wins: 0, losses: 0, draws: 0, winRate: 0 }
-      });
-    });
-
-    // 4. Disconnect Handling
+    // 3. Disconnect Handling
     socket.on('disconnect', () => {
       matchmaker.handleDisconnect(socket);
     });

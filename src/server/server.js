@@ -17,9 +17,26 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../../public')));
 
+const db = require('./db');
+
 // Health Check Endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', isPgConnected: db.isPgConnected(), timestamp: new Date().toISOString() });
+});
+
+// REST API: User Match History Endpoint
+app.get('/api/history/:playerName', async (req, res) => {
+  try {
+    const history = await db.getUserMatchHistory(req.params.playerName);
+    res.json({
+      success: true,
+      playerName: req.params.playerName,
+      count: history.length,
+      history
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Initialize Socket.IO Handler

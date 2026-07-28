@@ -21,7 +21,7 @@ This document tracks all features of the Real-Time Multiplayer Word Guessing Gam
 | **FEAT-11** | Dynamic Tile Flip Animations | Visual 3D flip animation for newly revealed letter tiles. | Browser visual inspection |
 | **FEAT-12** | Web Audio API Sound Effects | Synthesized sound effects for letter reveal, guess success/failure, round win, and match end. | Web Audio API browser play |
 | **FEAT-13** | AI Review Commit Discipline | Comprehensive commit-by-commit AI review documentation stored in `ai-reviews/`. | Inspection of `ai-reviews/` directory |
-| **FEAT-14** | User Match History & Stats | Persistent match records, win/loss/draw counts, and win rate % tracking. | Unit test in `matchHistoryStore.test.js` & Lobby UI |
+| **FEAT-14** | PostgreSQL User Match History | Saves match results (Winner, Opponent, Score, Result, Timestamp) to PostgreSQL with in-memory fallback, REST API, and SPA History Modal. | `matchHistoryStore.test.js` & SPA UI inspection |
 
 ---
 

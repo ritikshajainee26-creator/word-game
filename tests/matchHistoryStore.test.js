@@ -1,51 +1,63 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const matchHistoryStore = require('../src/server/matchHistoryStore');
+const db = require('../src/server/db');
 
-test('MatchHistoryStore records and retrieves player stats', () => {
-  const playerId = 'test_player_history_1';
-  
-  matchHistoryStore.clearUserHistory(playerId);
+test('db module initializes fallback store cleanly', async () => {
+  const ready = await db.initDatabase();
+  assert.strictEqual(typeof ready, 'boolean');
+});
 
-  // Add 1 Win
-  matchHistoryStore.addRecord(playerId, {
-    opponentName: 'Bot Master 🤖',
-    myScore: 3,
-    opponentScore: 1,
-    result: 'WIN',
-    gameMode: 'Practice vs AI'
+test('saveMatchResult saves and parses WIN, LOSS, and DRAW history', async () => {
+  const matchId = `test_match_${Date.now()}`;
+  const saveRes = await db.saveMatchResult({
+    matchId,
+    roomId: 'room_test',
+    player1Name: 'Viper',
+    player2Name: 'Shadow',
+    winnerName: 'Viper',
+    player1Score: 3,
+    player2Score: 1,
+    roundsPlayed: 4,
+    endReason: 'TARGET_SCORE_REACHED'
   });
 
-  // Add 1 Loss
-  matchHistoryStore.addRecord(playerId, {
-    opponentName: 'Alice',
-    myScore: 1,
-    opponentScore: 3,
-    result: 'LOSS',
-    gameMode: 'Quick Match'
+  assert.strictEqual(saveRes.success, true);
+
+  // Retrieve history for Viper
+  const viperHistory = await db.getUserMatchHistory('Viper');
+  assert.ok(viperHistory.length > 0);
+  const viperRecord = viperHistory.find(h => h.matchId === matchId);
+  assert.ok(viperRecord);
+  assert.strictEqual(viperRecord.result, 'WIN');
+  assert.strictEqual(viperRecord.opponentName, 'Shadow');
+  assert.strictEqual(viperRecord.playerScore, 3);
+  assert.strictEqual(viperRecord.opponentScore, 1);
+
+  // Retrieve history for Shadow
+  const shadowHistory = await db.getUserMatchHistory('Shadow');
+  assert.ok(shadowHistory.length > 0);
+  const shadowRecord = shadowHistory.find(h => h.matchId === matchId);
+  assert.ok(shadowRecord);
+  assert.strictEqual(shadowRecord.result, 'LOSS');
+  assert.strictEqual(shadowRecord.opponentName, 'Viper');
+  assert.strictEqual(shadowRecord.playerScore, 1);
+  assert.strictEqual(shadowRecord.opponentScore, 3);
+});
+
+test('getUserMatchHistory handles case-insensitive name query', async () => {
+  const matchId = `test_match_ci_${Date.now()}`;
+  await db.saveMatchResult({
+    matchId,
+    player1Name: 'CyberNinja',
+    player2Name: 'Bot Master 🤖',
+    winnerName: 'CyberNinja',
+    player1Score: 3,
+    player2Score: 0
   });
 
-  // Add 1 Draw
-  matchHistoryStore.addRecord(playerId, {
-    opponentName: 'Bob',
-    myScore: 2,
-    opponentScore: 2,
-    result: 'DRAW',
-    gameMode: 'Private Room'
-  });
-
-  const { history, stats } = matchHistoryStore.getUserHistory(playerId);
-
-  assert.strictEqual(history.length, 3);
-  assert.strictEqual(stats.totalMatches, 3);
-  assert.strictEqual(stats.wins, 1);
-  assert.strictEqual(stats.losses, 1);
-  assert.strictEqual(stats.draws, 1);
-  assert.strictEqual(stats.winRate, 33);
-
-  // Clear history
-  matchHistoryStore.clearUserHistory(playerId);
-  const cleared = matchHistoryStore.getUserHistory(playerId);
-  assert.strictEqual(cleared.history.length, 0);
-  assert.strictEqual(cleared.stats.totalMatches, 0);
+  const historyLower = await db.getUserMatchHistory('cyberninja');
+  assert.ok(historyLower.length > 0);
+  const rec = historyLower.find(h => h.matchId === matchId);
+  assert.ok(rec);
+  assert.strictEqual(rec.result, 'WIN');
 });
