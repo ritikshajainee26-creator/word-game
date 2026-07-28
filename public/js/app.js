@@ -125,19 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.playerNameInput.classList.remove('input-error');
     elements.nameErrorMsg.classList.add('hidden');
     myPlayerName = val;
-    try {
-      localStorage.setItem('word_clash_player_name', val);
-    } catch (e) {}
     return myPlayerName;
   }
 
-  // Restore saved player name from localStorage on page load
+  // Always start with a clean, empty display name input on page load/refresh
+  elements.playerNameInput.value = '';
   try {
-    const savedName = localStorage.getItem('word_clash_player_name');
-    if (savedName) {
-      elements.playerNameInput.value = savedName;
-      myPlayerName = savedName;
-    }
+    localStorage.removeItem('word_clash_player_name');
   } catch (e) {}
 
   // --- 2. SOCKET EVENT LISTENERS ---
