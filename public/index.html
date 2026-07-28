@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Clash | Real-Time Multiplayer Word Guessing Game</title>
+  <meta name="description" content="A real-time, server-authoritative 2-player multiplayer word guessing game with interval letter reveals, automated matchmaking, and high-intensity competition.">
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-background">
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Main Header -->
+    <header class="main-header">
+      <div class="brand">
+        <span class="brand-icon">⚡</span>
+        <h1 class="brand-title">WORD<span class="gradient-text">CLASH</span></h1>
+      </div>
+      <div class="header-actions">
+        <div class="status-badge" id="networkStatus">
+          <span class="status-dot online"></span>
+          <span class="status-text">Connected</span>
+        </div>
+        <button class="icon-button" id="soundToggle" title="Toggle Sound">
+          <span class="icon" id="soundIcon">🔊</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Disconnect Banner -->
+    <div class="banner disconnect-banner hidden" id="disconnectBanner">
+      <span class="pulse-icon">⚠️</span>
+      <span id="disconnectMessage">Opponent disconnected! Reconnect window: 15s</span>
+    </div>
+
+    <!-- MAIN CONTENT SCREENS -->
+    <main class="main-content">
+      <!-- 1. LOBBY SCREEN -->
+      <section class="screen active" id="lobbyScreen">
+        <div class="hero-section">
+          <h2 class="hero-title">Real-Time Word Duel</h2>
+          <p class="hero-subtitle">Outsmart your opponent letter by letter. Guess fast, stay accurate, claim victory!</p>
+        </div>
+
+        <div class="card lobby-card">
+          <div class="form-group">
+            <label for="playerNameInput" class="form-label">Display Name</label>
+            <input type="text" id="playerNameInput" class="form-input" placeholder="Enter your warrior tag..." maxlength="16" value="WordMaster">
+          </div>
+
+          <div class="mode-grid">
+            <div class="mode-card" id="btnQuickMatch">
+              <div class="mode-icon">⚡</div>
+              <h3 class="mode-title">Quick Match</h3>
+              <p class="mode-desc">Auto-match 1v1 with online players</p>
+              <button class="btn btn-primary btn-full">Find Match</button>
+            </div>
+
+            <div class="mode-card" id="btnPrivateRoom">
+              <div class="mode-icon">🔐</div>
+              <h3 class="mode-title">Private Room</h3>
+              <p class="mode-desc">Create or join with a room code</p>
+              <button class="btn btn-secondary btn-full">Private Game</button>
+            </div>
+
+            <div class="mode-card" id="btnPracticeBot">
+              <div class="mode-icon">🤖</div>
+              <h3 class="mode-title">Practice vs AI</h3>
+              <p class="mode-desc">Test your speed against Bot Master</p>
+              <button class="btn btn-outline btn-full">Practice Now</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Private Room Code Modal -->
+        <div class="modal-backdrop hidden" id="privateRoomModal">
+          <div class="card modal-card">
+            <div class="modal-header">
+              <h3>Private Room Setup</h3>
+              <button class="btn-close" id="btnClosePrivateModal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="tab-buttons">
+                <button class="tab-btn active" id="tabCreateRoom">Create Room</button>
+                <button class="tab-btn" id="tabJoinRoom">Join Room</button>
+              </div>
+
+              <div class="tab-content" id="createRoomContent">
+                <p>Create a room and share the 6-character code with your friend.</p>
+                <button class="btn btn-primary btn-full" id="btnConfirmCreateRoom">Generate Room Code</button>
+                <div class="room-code-display hidden" id="roomCodeDisplay">
+                  <span class="code-label">Room Code:</span>
+                  <span class="code-value" id="generatedRoomCode">------</span>
+                  <span class="code-hint">Waiting for opponent to join...</span>
+                </div>
+              </div>
+
+              <div class="tab-content hidden" id="joinRoomContent">
+                <p>Enter the 6-character code shared by your friend:</p>
+                <input type="text" id="joinRoomCodeInput" class="form-input code-input" placeholder="e.g. ABC123" maxlength="6">
+                <button class="btn btn-secondary btn-full" id="btnConfirmJoinRoom">Join Private Match</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. MATCHMAKING SCREEN -->
+      <section class="screen" id="matchmakingScreen">
+        <div class="card matchmaking-card">
+          <div class="radar-container">
+            <div class="radar-circle radar-1"></div>
+            <div class="radar-circle radar-2"></div>
+            <div class="radar-circle radar-3"></div>
+            <div class="radar-icon">🔍</div>
+          </div>
+          <h2 class="matchmaking-title" id="matchmakingStatusText">Searching for an Opponent...</h2>
+          <p class="matchmaking-timer" id="matchmakingTimer">00:05</p>
+
+          <div class="matchmaking-actions">
+            <button class="btn btn-outline" id="btnCancelMatchmaking">Cancel</button>
+            <button class="btn btn-secondary" id="btnSwitchToBot">Play vs AI Bot Instead</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. GAME ARENA SCREEN -->
+      <section class="screen" id="arenaScreen">
+        <!-- Scoreboard Header -->
+        <div class="scoreboard-container">
+          <div class="player-score-card p1-card" id="p1ScoreCard">
+            <div class="player-avatar">👤</div>
+            <div class="player-info">
+              <span class="player-name" id="p1Name">Player 1</span>
+              <span class="player-score" id="p1Score">0</span>
+            </div>
+          </div>
+
+          <div class="match-info-badge">
+            <span class="round-indicator" id="roundIndicator">ROUND 1</span>
+            <span class="vs-text">VS</span>
+            <span class="target-indicator" id="targetIndicator">First to 3</span>
+          </div>
+
+          <div class="player-score-card p2-card" id="p2ScoreCard">
+            <div class="player-info align-right">
+              <span class="player-name" id="p2Name">Opponent</span>
+              <span class="player-score" id="p2Score">0</span>
+            </div>
+            <div class="player-avatar">👤</div>
+          </div>
+        </div>
+
+        <!-- Word Arena & Interval Timer -->
+        <div class="arena-main-card">
+          <div class="timer-section">
+            <div class="circle-timer">
+              <svg class="timer-svg" viewBox="0 0 100 100">
+                <circle class="timer-bg" cx="50" cy="50" r="44"></circle>
+                <circle class="timer-progress" id="timerProgress" cx="50" cy="50" r="44"></circle>
+              </svg>
+              <div class="timer-content">
+                <span class="timer-seconds" id="timerSeconds">4.0</span>
+                <span class="timer-label">NEXT LETTER</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Target Masked Word Tiles -->
+          <div class="word-tiles-container" id="wordTilesContainer">
+            <!-- Tiles dynamically injected here -->
+          </div>
+
+          <!-- Interval Guess Input -->
+          <div class="guess-form-container">
+            <div class="input-wrapper">
+              <input type="text" id="guessInput" class="guess-input" placeholder="Type complete word..." autocomplete="off" maxlength="12">
+              <button class="btn btn-primary btn-guess" id="btnSubmitGuess">GUESS</button>
+            </div>
+            <div class="interval-status" id="intervalStatus">
+              <span class="status-icon">💡</span>
+              <span id="intervalStatusText">1 guess available for this letter tick!</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reactions & Match Log -->
+        <div class="arena-footer">
+          <div class="reaction-bar">
+            <span class="reaction-label">Quick Reaction:</span>
+            <button class="btn-reaction" data-emoji="👍">👍</button>
+            <button class="btn-reaction" data-emoji="⚡">⚡</button>
+            <button class="btn-reaction" data-emoji="🤯">🤯</button>
+            <button class="btn-reaction" data-emoji="🔥">🔥</button>
+            <button class="btn-reaction" data-emoji="🎉">🎉</button>
+          </div>
+
+          <div class="match-log" id="matchLog">
+            <div class="log-item system">Round started! Guess the hidden word.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. ROUND / MATCH RESULT MODAL -->
+      <div class="modal-backdrop hidden" id="resultModal">
+        <div class="card modal-card result-card">
+          <div class="result-icon" id="resultIcon">🏆</div>
+          <h2 class="result-title" id="resultTitle">ROUND WINNER!</h2>
+          <p class="result-word" id="resultWord">The word was: <span class="highlight-word" id="targetWordHighlight">GALAXY</span></p>
+          <p class="result-summary" id="resultSummary">Alice guessed correctly in interval tick 3!</p>
+
+          <div class="final-scores" id="finalScoresContainer">
+            <!-- Score rows -->
+          </div>
+
+          <div class="result-actions" id="resultActions">
+            <button class="btn btn-primary btn-full" id="btnNextRound">Next Round</button>
+            <button class="btn btn-outline btn-full hidden" id="btnReturnLobby">Return to Lobby</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Socket.IO Client Library -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Custom App Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
