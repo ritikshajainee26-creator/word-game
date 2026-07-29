@@ -6,22 +6,28 @@
   "scripts": {
     "start": "node src/server/server.js",
     "dev": "node --watch src/server/server.js",
+    "build": "vite build --outDir client/dist",
     "test": "node --test tests/gameEngine.test.js tests/integration.test.js tests/matchHistoryStore.test.js tests/reconnect.test.js"
   },
   "keywords": [
     "multiplayer",
-    "word-game",
+    "word-guessing",
     "socket.io",
-    "express",
     "real-time",
-    "server-authoritative"
+    "react"
   ],
-  "author": "Antigravity Engineering",
-  "license": "MIT",
+  "author": "Antigravity",
+  "license": "ISC",
   "dependencies": {
     "express": "^4.19.2",
-    "pg": "^8.22.0",
+    "pg": "^8.12.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "socket.io": "^4.7.5",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.2.0"
   }
 }

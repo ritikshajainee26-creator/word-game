@@ -68,14 +68,7 @@ class SessionManager {
    * Clears session records when a match terminates.
    * @param {string} matchId
    */
-  removeMatchSessions(matchId) {
-    this.sessions.forEach((session, token) => {
-      if (session.matchId === matchId) {
-        this.playerToToken.delete(session.playerId);
-        this.sessions.delete(token);
-      }
-    });
-  }
+
 }
 
 module.exports = new SessionManager();

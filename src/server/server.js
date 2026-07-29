@@ -13,8 +13,9 @@ const io = new Server(server, {
   }
 });
 
-// Middleware & Static Asset Serving
+// Middleware & Static Asset Serving (React SPA client/dist & public fallback)
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../../client/dist')));
 app.use(express.static(path.join(__dirname, '../../public')));
 
 const db = require('./db');
@@ -36,6 +37,20 @@ app.get('/api/history/:playerName', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Catch-all SPA Route for React Client
+app.get('*', (req, res, next) => {
+  const reactIndex = path.join(__dirname, '../../client/dist/index.html');
+  const publicIndex = path.join(__dirname, '../../public/index.html');
+  const fs = require('fs');
+  if (fs.existsSync(reactIndex)) {
+    res.sendFile(reactIndex);
+  } else if (fs.existsSync(publicIndex)) {
+    res.sendFile(publicIndex);
+  } else {
+    next();
   }
 });
 
