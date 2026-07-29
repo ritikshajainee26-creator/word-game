@@ -16,7 +16,6 @@ const io = new Server(server, {
 // Middleware & Static Asset Serving (React SPA client/dist)
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../../client/dist')));
-app.use(express.static(path.join(__dirname, '../../public')));
 
 const db = require('./db');
 
@@ -42,14 +41,7 @@ app.get('/api/history/:playerName', async (req, res) => {
 
 // Catch-all SPA Route for React Client
 app.get('*', (req, res) => {
-  const reactIndex = path.join(__dirname, '../../client/dist/index.html');
-  const publicIndex = path.join(__dirname, '../../public/index.html');
-  const fs = require('fs');
-  if (fs.existsSync(reactIndex)) {
-    res.sendFile(reactIndex);
-  } else {
-    res.sendFile(publicIndex);
-  }
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 // Initialize Socket.IO Handler
