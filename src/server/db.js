@@ -66,6 +66,20 @@ async function initDatabase() {
       );
     `);
 
+    // Create users table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(LOWER(username));
+    `);
+
     // Create index on player_name for fast lookups
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_user_history_player ON user_match_history(player_name);
@@ -219,6 +233,72 @@ async function getUserMatchHistory(playerName) {
     .slice(0, 50);
 }
 
+// In-memory fallback users for offline/test mode
+let inMemoryUsers = [];
+
+/**
+ * Creates a new user account.
+ */
+async function createUser(username, passwordHash) {
+  const cleanName = username.trim();
+  if (isPgConnected && pool) {
+    const res = await pool.query(
+      `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, created_at;`,
+      [cleanName, passwordHash]
+    );
+    return res.rows[0];
+  }
+
+  const existing = inMemoryUsers.find(u => u.username.toLowerCase() === cleanName.toLowerCase());
+  if (existing) {
+    const err = new Error('duplicate key value violates unique constraint "users_username_key"');
+    err.code = '23505';
+    throw err;
+  }
+
+  const newUser = {
+    id: inMemoryUsers.length + 1,
+    username: cleanName,
+    password_hash: passwordHash,
+    created_at: new Date().toISOString()
+  };
+  inMemoryUsers.push(newUser);
+  return { id: newUser.id, username: newUser.username, created_at: newUser.created_at };
+}
+
+/**
+ * Fetches user account by username.
+ */
+async function getUserByUsername(username) {
+  const cleanName = (username || '').trim();
+  if (!cleanName) return null;
+
+  if (isPgConnected && pool) {
+    const res = await pool.query(
+      `SELECT id, username, password_hash, created_at FROM users WHERE LOWER(username) = LOWER($1);`,
+      [cleanName]
+    );
+    return res.rows[0] || null;
+  }
+
+  return inMemoryUsers.find(u => u.username.toLowerCase() === cleanName.toLowerCase()) || null;
+}
+
+/**
+ * Fetches user account by ID.
+ */
+async function getUserById(id) {
+  if (isPgConnected && pool) {
+    const res = await pool.query(
+      `SELECT id, username, created_at FROM users WHERE id = $1;`,
+      [id]
+    );
+    return res.rows[0] || null;
+  }
+
+  return inMemoryUsers.find(u => u.id === id) || null;
+}
+
 // Auto-run initDatabase on module import
 initDatabase().catch(err => console.error('DB init error:', err));
 
@@ -227,5 +307,8 @@ module.exports = {
   initDatabase,
   saveMatchResult,
   getUserMatchHistory,
+  createUser,
+  getUserByUsername,
+  getUserById,
   isPgConnected: () => isPgConnected
 };

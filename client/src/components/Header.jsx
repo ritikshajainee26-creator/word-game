@@ -1,7 +1,7 @@
 import React from 'react';
 import soundEffects from '../utils/audio';
 
-const Header = ({ isConnected, soundEnabled, setSoundEnabled, onOpenHistory }) => {
+const Header = ({ isConnected, soundEnabled, setSoundEnabled, authUser, onOpenAuthModal, onLogout, onOpenHistory }) => {
   const toggleSound = () => {
     const newState = soundEffects.toggleSound();
     setSoundEnabled(newState);
@@ -15,6 +15,26 @@ const Header = ({ isConnected, soundEnabled, setSoundEnabled, onOpenHistory }) =
       </div>
       
       <div className="header-actions">
+        {authUser ? (
+          <div className="status-badge" style={{ borderColor: 'var(--primary-cyan)', color: 'var(--primary-cyan)' }}>
+            <span>👤 <strong>{authUser.username}</strong></span>
+            <button 
+              className="btn btn-outline btn-sm" 
+              onClick={onLogout}
+              style={{ marginLeft: '6px', padding: '2px 8px', fontSize: '0.75rem' }}
+            >
+              Logout 🚪
+            </button>
+          </div>
+        ) : (
+          <button 
+            className="btn btn-primary btn-sm" 
+            onClick={onOpenAuthModal}
+          >
+            🔑 Sign In / Sign Up
+          </button>
+        )}
+
         <button 
           className="btn btn-outline btn-sm" 
           onClick={onOpenHistory}

@@ -18,6 +18,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../../client/dist')));
 
 const db = require('./db');
+const { router: authRouter } = require('./auth');
+
+// Authentication API Endpoints
+app.use('/api/auth', authRouter);
 
 // Health Check Endpoint
 app.get('/health', (req, res) => {

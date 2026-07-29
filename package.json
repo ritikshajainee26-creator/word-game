@@ -5,9 +5,9 @@
   "main": "src/server/server.js",
   "scripts": {
     "start": "node src/server/server.js",
-    "dev": "node --watch src/server/server.js",
-    "build": "vite build --outDir client/dist",
-    "test": "node --test tests/gameEngine.test.js tests/integration.test.js tests/matchHistoryStore.test.js tests/reconnect.test.js"
+    "dev": "vite",
+    "build": "vite build",
+    "test": "node --test tests/gameEngine.test.js tests/integration.test.js tests/matchHistoryStore.test.js tests/reconnect.test.js tests/auth.test.js"
   },
   "keywords": [
     "multiplayer",
@@ -19,7 +19,9 @@
   "author": "Antigravity",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

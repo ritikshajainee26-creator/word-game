@@ -8,10 +8,11 @@ import PrivateRoomModal from './components/PrivateRoomModal';
 import Arena from './components/Arena';
 import ResultModal from './components/ResultModal';
 import HistoryModal from './components/HistoryModal';
+import AuthModal from './components/AuthModal';
 import './App.css';
 
 function App() {
-  // Persistent Player ID
+  // Persistent Player ID & Auth Session State
   const [myPlayerId] = useState(() => {
     let pid = localStorage.getItem('word_clash_player_id');
     if (!pid) {
@@ -21,12 +22,77 @@ function App() {
     return pid;
   });
 
+  const [authUser, setAuthUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('word_clash_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [authToken, setAuthToken] = useState(() => {
+    return localStorage.getItem('word_clash_jwt') || null;
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   // App State
   const [currentScreen, setCurrentScreen] = useState('lobby');
-  const [playerName, setPlayerName] = useState(''); // Always starts empty on refresh
+  const [playerName, setPlayerName] = useState(() => (authUser ? authUser.username : ''));
   const [nameError, setNameError] = useState(false);
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Sync playerName with authUser
+  useEffect(() => {
+    if (authUser) {
+      setPlayerName(authUser.username);
+    }
+  }, [authUser]);
+
+  // Auto verify session on mount
+  useEffect(() => {
+    if (authToken) {
+      fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.user) {
+            setAuthUser(data.user);
+            setPlayerName(data.user.username);
+          } else {
+            // Token expired or invalid
+            handleLogout();
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const handleAuthSuccess = (user, token) => {
+    setAuthUser(user);
+    setAuthToken(token);
+    setPlayerName(user.username);
+    setIsAuthModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('word_clash_jwt');
+    localStorage.removeItem('word_clash_user');
+    setAuthUser(null);
+    setAuthToken(null);
+    setPlayerName('');
+  };
+
+  const requireAuth = (callback) => {
+    if (!authUser || !authToken) {
+      setIsAuthModalOpen(true);
+      return false;
+    }
+    return true;
+  };
 
   // Match State
   const [currentRoomId, setCurrentRoomId] = useState(null);
@@ -333,25 +399,30 @@ function App() {
     };
   }, [myPlayerId, playerName, p1Score, p2Score, p1Name, p2Name]);
 
-  // Handlers
+  // Handlers with Authentication checks
   const handleStartQuickMatch = (name) => {
+    if (!requireAuth()) return;
     socket.emit('join_queue', { name, playerId: myPlayerId });
   };
 
   const handleOpenPrivateModal = () => {
+    if (!requireAuth()) return;
     setGeneratedRoomCode('');
     setIsPrivateModalOpen(true);
   };
 
   const handleCreateRoom = () => {
+    if (!requireAuth()) return;
     socket.emit('create_private_room', { name: playerName, playerId: myPlayerId });
   };
 
   const handleJoinRoom = (roomCode) => {
+    if (!requireAuth()) return;
     socket.emit('join_private_room', { name: playerName, playerId: myPlayerId, roomCode });
   };
 
   const handleStartBotMatch = (name) => {
+    if (!requireAuth()) return;
     socket.emit('start_bot_match', { name, playerId: myPlayerId });
   };
 
@@ -370,6 +441,7 @@ function App() {
   };
 
   const handleFetchHistory = async () => {
+    if (!requireAuth()) return;
     const validName = (playerName || '').trim();
     if (!validName) {
       setNameError(true);
@@ -407,6 +479,9 @@ function App() {
         isConnected={isConnected}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
+        authUser={authUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
         onOpenHistory={handleFetchHistory}
       />
 
@@ -458,6 +533,12 @@ function App() {
       </main>
 
       {/* Modals */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
+
       <PrivateRoomModal
         isOpen={isPrivateModalOpen}
         onClose={() => setIsPrivateModalOpen(false)}
